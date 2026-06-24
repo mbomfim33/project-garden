@@ -17,11 +17,19 @@ export function Diagnosis() {
   const diagnosis = mutation.data;
 
   // Animate the confidence bar from 0 once a diagnosis arrives.
+  // The reset is deferred into a rAF so we never call setState synchronously
+  // in the effect body (react-hooks/set-state-in-effect).
   useEffect(() => {
     if (!diagnosis) return;
-    setBarWidth(0);
-    const t = setTimeout(() => setBarWidth(diagnosis.confianca), 80);
-    return () => clearTimeout(t);
+    let timer: ReturnType<typeof setTimeout>;
+    const raf = requestAnimationFrame(() => {
+      setBarWidth(0);
+      timer = setTimeout(() => setBarWidth(diagnosis.confianca), 80);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, [diagnosis]);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
