@@ -8,6 +8,7 @@ import { More } from './features/More';
 import { Onboarding } from './features/Onboarding';
 import { Project } from './features/Project';
 import { Schedule } from './features/Schedule';
+import { Sandbox } from './features/Sandbox';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         <Route index element={<Navigate to="/inicio" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/sandbox" element={<Sandbox />} />
     </Routes>
   );
 }
