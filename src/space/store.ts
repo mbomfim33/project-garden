@@ -81,7 +81,7 @@ export const SpaceStore = {
 };
 
 export function newId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  if (typeof crypto?.randomUUID === 'function') return crypto.randomUUID();
   // Insecure origins don't get randomUUID.
   const b = crypto.getRandomValues(new Uint8Array(16));
   b[6] = (b[6] & 0x0f) | 0x40;
