@@ -24,7 +24,7 @@ describe('calibrateScale', () => {
 
   it('refuses a line too short to mean anything', () => {
     expect(() => calibrateScale({ x: 10, y: 10 }, { x: 10.2, y: 10 }, 10)).toThrow(/too short/);
-    expect(() => calibrateScale({ x: 0, y: 0 }, { x: 200, y: 0 }, 0)).toThrow(/real length/);
+    expect(() => calibrateScale({ x: 0, y: 0 }, { x: 200, y: 0 }, 0)).toThrow(/how long/);
   });
 });
 

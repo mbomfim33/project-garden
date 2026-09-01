@@ -30,7 +30,7 @@ export function DataPanel({ space, grid, hovered, summerLabel }: Props) {
     if (cell) {
       drawDayTrace(ctx, cellHourly(grid, hovered), Array.from(grid.hours), left, summerLabel);
     } else {
-      drawChartPlaceholder(ctx, left, 'hover the plan to read one square');
+      drawChartPlaceholder(ctx, left, 'point at the plan to read one square');
     }
     drawLightHistogram(
       ctx,
@@ -60,16 +60,16 @@ export function DataPanel({ space, grid, hovered, summerLabel }: Props) {
               <span className="k">winter</span> <b>{cell.sunHours.winter.toFixed(1)} h</b>
             </span>
             <span>
-              <span className="k">class</span> <b>{cell.light}</b>
+              <span className="k">light</span> <b>{cell.light}</b>
             </span>
             <span>
               <span className="k">shelter</span> <b>{pct(cell.nearWall)}</b>
             </span>
             <span>
-              <span className="k">exposure</span> <b>{pct(cell.wind)}</b>
+              <span className="k">wind</span> <b>{pct(cell.wind)}</b>
             </span>
             <span>
-              <span className="k">reach</span> <b>{pct(cell.access)}</b>
+              <span className="k">near a door</span> <b>{pct(cell.access)}</b>
             </span>
           </>
         ) : (
@@ -78,7 +78,7 @@ export function DataPanel({ space, grid, hovered, summerLabel }: Props) {
               <span className="k">usable</span> <b>{summary.areaM2.toFixed(1)} m²</b>
             </span>
             <span>
-              <span className="k">grid</span> <b>{grid.cellSize} m squares</b>
+              <span className="k">squares</span> <b>{grid.cellSize} m</b>
             </span>
             <span>
               <span className="k">summer</span>{' '}
@@ -87,7 +87,7 @@ export function DataPanel({ space, grid, hovered, summerLabel }: Props) {
               </b>
             </span>
             <span>
-              <span className="k">winter mean</span> <b>{summary.meanWinter.toFixed(1)} h</b>
+              <span className="k">winter average</span> <b>{summary.meanWinter.toFixed(1)} h</b>
             </span>
             <span>
               <span className="k">at</span>{' '}

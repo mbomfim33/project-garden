@@ -234,7 +234,7 @@ export function SpaceEditor({ space }: { space: Space }) {
         setSelectedOverhead((doc.space.overheads ?? []).length);
         setTool('select');
         setDirty(true);
-        setNotice(`Roof piece added, ${clearance.toFixed(1)} m above the floor.`);
+        setNotice(`Roof added, ${clearance.toFixed(1)} m above the floor.`);
         return;
       }
       const s = snap(world, doc.space.boundary, vp, {
@@ -379,7 +379,7 @@ export function SpaceEditor({ space }: { space: Space }) {
       setPendingRect(null);
       const moved = Math.hypot(drag.current.x - drag.start.x, drag.current.y - drag.start.y);
       if (moved < 0.05) {
-        setNotice('Drag out a rectangle — a single click has nothing to cover.');
+        setNotice('Drag to make a rectangle. One click is not enough.');
         return;
       }
       // Dragging along an edge is a natural gesture and leaves a rectangle with
@@ -389,7 +389,7 @@ export function SpaceEditor({ space }: { space: Space }) {
         commit({ kind: 'ADD_OVERHEAD', overhead: { ...makeOverhead(p0, p1, clearance), label: 'Roof piece' } });
         setSelectedOverhead((doc.space.overheads ?? []).length);
         setTool('select');
-        setNotice(`Roof piece added, ${clearance.toFixed(1)} m above the floor.`);
+        setNotice(`Roof added, ${clearance.toFixed(1)} m above the floor.`);
       } else {
         commit({ kind: 'ADD_OBSTACLE', obstacle: makeBox(p0, p1, boxHeight) });
         setSelectedObstacle(doc.space.obstacles.length);
@@ -404,9 +404,7 @@ export function SpaceEditor({ space }: { space: Space }) {
         setCalibrationLine(null);
         return;
       }
-      setNotice(
-        `That line is currently ${metres.toFixed(2)} m. Type its real length on the right to rescale.`,
-      );
+      setNotice(`That line is ${metres.toFixed(2)} m now. Type its real length on the left.`);
     }
   };
 
@@ -550,14 +548,14 @@ export function SpaceEditor({ space }: { space: Space }) {
           aria-label={`Plan of ${doc.space.name}`}
         />
         <div className={notice ? 'overlay loud' : 'overlay'}>
-          {notice ?? `${TOOL_HINT[tool]} · shift-drag to pan, scroll to zoom`}
+          {notice ?? `${TOOL_HINT[tool]} · hold shift and drag to move, scroll to zoom`}
         </div>
       </div>
 
       <div className="readout editor-footer">
         <span>
           <span className="k">area</span>{' '}
-          <b>{shapeReady ? `${area(boundary).toFixed(1)} m²` : 'not closed yet'}</b>
+          <b>{shapeReady ? `${area(boundary).toFixed(1)} m²` : 'not closed'}</b>
         </span>
         <span>
           <span className="k">corners</span> <b>{boundary.length}</b>
@@ -574,7 +572,7 @@ export function SpaceEditor({ space }: { space: Space }) {
             {dirty ? 'Save' : 'Saved'}
           </button>{' '}
           <button className="primary" onClick={saveAndOpen} disabled={!shapeReady}>
-            Save and see the sun
+            Save and open
           </button>
         </span>
       </div>

@@ -5,7 +5,7 @@ export const KEY = 'project-garden.spaces.v1';
 
 export class QuotaError extends Error {
   constructor() {
-    super('Out of browser storage. Shrink or drop the traced image, or delete a space.');
+    super('No more space in the browser. Remove the background image, or delete a space.');
     this.name = 'QuotaError';
   }
 }

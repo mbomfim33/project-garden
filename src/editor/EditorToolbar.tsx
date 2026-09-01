@@ -4,7 +4,7 @@ type Group = { name: string; tools: { key: Tool; label: string; shortcut: string
 
 const GROUPS: Group[] = [
   {
-    name: 'Shape',
+    name: 'Outline',
     tools: [
       { key: 'select', label: 'Select', shortcut: 'V' },
       { key: 'draw', label: 'Draw', shortcut: 'D' },
@@ -12,7 +12,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    name: 'Build',
+    name: 'Add',
     tools: [
       { key: 'wall', label: 'Walls', shortcut: 'W' },
       { key: 'door', label: 'Door', shortcut: 'R' },

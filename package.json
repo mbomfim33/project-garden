@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Sun map studio — draw a balcony, garden or plot and see where the sun actually lands.",
-  "license": "GPL-3.0",
+  "description": "Draw a space and see how much sun each part of it gets.",
+  "license": "AGPL-3.0-only",
   "engines": {
     "node": ">=20.19"
   },

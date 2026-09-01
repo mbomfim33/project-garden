@@ -45,8 +45,8 @@ export function CompassDial({
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     // Labels sit where the plan's own axes point, so "up" is always the plan's up.
-    ctx.fillText('up', c, c - r - 7);
-    ctx.fillText('down', c, c + r + 7);
+    ctx.fillText('top', c, c - r - 7);
+    ctx.fillText('bottom', c, c + r + 7);
 
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * 2 * Math.PI;
@@ -112,7 +112,7 @@ export function CompassDial({
         e.currentTarget.releasePointerCapture(e.pointerId);
       }}
       role="slider"
-      aria-label="Which way is north"
+      aria-label="Where north is"
       aria-valuemin={0}
       aria-valuemax={359}
       aria-valuenow={Math.round((bearing * 180) / Math.PI)}

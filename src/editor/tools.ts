@@ -14,16 +14,16 @@ export type Tool =
   | 'calibrate';
 
 export const TOOL_HINT: Record<Tool, string> = {
-  select: 'Drag a corner to move it. Tap one to remove it.',
-  draw: 'Click to drop corners. Click the first one again, or press Enter, to close the shape.',
-  insert: 'Click a wall to add a corner on it.',
-  wall: 'Click an edge to cycle full wall, half wall, open. Set its height on the right.',
-  door: 'Click an edge to put a door on it, then drag the marker along.',
-  box: 'Drag out a rectangle for a shed, a raised bed or a neighbouring wall.',
-  tree: 'Click where the trunk is. Set the canopy radius and height on the right.',
-  overhead: 'Drag out a rectangle for the roof above you.',
-  overheadTrace: 'Click corner by corner to trace a roof piece. Click the first corner again to finish.',
-  calibrate: 'Drag a line along something whose length you know, then type the length.',
+  select: 'Drag a corner to move it. Click a corner once to delete it.',
+  draw: 'Click to add corners. Click the first corner again to close the shape.',
+  insert: 'Click an edge to add a corner on it.',
+  wall: 'Click an edge to change it: wall, half wall, open.',
+  door: 'Click an edge to add a door, then drag the door along it.',
+  box: 'Drag a rectangle for a shed, a wall or a raised bed.',
+  tree: 'Click where the trunk is.',
+  overhead: 'Drag a rectangle for the roof above you.',
+  overheadTrace: 'Click each corner of the roof. Click the first corner again to finish.',
+  calibrate: 'Drag a line on something you know the length of, then type that length.',
 };
 
 /** Which tools need a closed boundary before they mean anything. */

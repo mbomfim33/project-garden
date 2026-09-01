@@ -140,7 +140,7 @@ export function drawLightHistogram(
     bars.map((b, i) => ({ at: (i + 0.5) / bars.length, label: b.key })),
     yMax,
     (v) => (yMax >= 20 ? v.toFixed(0) : v.toFixed(1)),
-    'area by light class, m²',
+    'area by light, m²',
   );
 
   ctx.save();

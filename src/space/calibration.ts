@@ -33,8 +33,8 @@ export function calibrateScale(
   rotationRad = 0,
 ): Calibration {
   const pixelLength = Math.hypot(bPx.x - aPx.x, bPx.y - aPx.y);
-  if (pixelLength < 1) throw new Error('Calibration line is too short to measure.');
-  if (!(realMetres > 0)) throw new Error('Give the line a real length in metres.');
+  if (pixelLength < 1) throw new Error('That line is too short to measure.');
+  if (!(realMetres > 0)) throw new Error('Type how long the line really is, in metres.');
   return { metresPerPixel: realMetres / pixelLength, originPx, rotationRad };
 }
 
@@ -86,8 +86,8 @@ export function solveSimilarity(
 
   const worldLen = Math.hypot(vx, vy);
   const pxLen = Math.hypot(ux, uy);
-  if (pxLen < 1) throw new Error('The two reference points are too close together on the image.');
-  if (worldLen < 0.5) throw new Error('The two reference points are too close together on the ground.');
+  if (pxLen < 1) throw new Error('The two points are too close together on the image.');
+  if (worldLen < 0.5) throw new Error('The two coordinates are too close together on the ground.');
 
   return {
     scale: worldLen / pxLen,

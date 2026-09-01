@@ -113,7 +113,7 @@ export function EdgeList({
                   </div>
 
                   {e.wall === 'none' ? (
-                    <p className="hint">Open to the sky. Nothing along here casts shade.</p>
+                    <p className="hint">Nothing on this side. The sun comes straight in.</p>
                   ) : (
                     <>
                       <label className="field">
@@ -129,7 +129,7 @@ export function EdgeList({
                           }}
                         />
                         <span className="dim">
-                          m{e.wall === 'half' ? ` · stands ${height.toFixed(1)} m` : ''}
+                          m{e.wall === 'half' ? ` · half of that is ${height.toFixed(1)} m` : ''}
                         </span>
                       </label>
 
@@ -146,7 +146,7 @@ export function EdgeList({
                             if (Number.isFinite(v)) setRun(v);
                           }}
                         />
-                        <span className="dim">of {length.toFixed(1)} m</span>
+                        <span className="dim">m of {length.toFixed(1)}</span>
                       </label>
 
                       {partial ? (
@@ -169,8 +169,7 @@ export function EdgeList({
 
                       {partial ? (
                         <p className="hint">
-                          The remaining {(length - run).toFixed(1)} m is open, and light comes
-                          through it.
+                          The other {(length - run).toFixed(1)} m is open. Light comes in there.
                         </p>
                       ) : null}
                     </>
@@ -197,19 +196,19 @@ export function EdgeList({
         <div className="wallkey">
           <div>
             <span className="mark full" aria-hidden />
-            Full height
+            A wall, full height
           </div>
           <div>
             <span className="mark half" aria-hidden />
-            Half as tall — a rail or parapet
+            Half as tall (a rail or a low wall)
           </div>
           <div>
             <span className="mark none" aria-hidden />
-            Nothing built along it
+            Nothing there
           </div>
         </div>
       </div>
-      <p className="hint">Pick a row to edit it. Hover one to find it on the plan.</p>
+      <p className="hint">Click a row to change it. Move the mouse over a row to see it on the plan.</p>
     </>
   );
 }
