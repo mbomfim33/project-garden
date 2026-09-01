@@ -96,7 +96,6 @@ So treat the numbers as a good guess, not a survey.
 | `src/editor` | Drawing a space |
 | `src/studio` | Looking at the result |
 | `src/app` | Screens, routing, the background worker |
-| `docs` | The design notes this was built from |
 
 The engine is plain functions over plain data, so it is tested without a browser
 and can run in a worker. A lint rule stops it importing React.
