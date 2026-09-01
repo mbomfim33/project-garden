@@ -58,6 +58,76 @@ export function makeOverhead(p0: Vec2, p1: Vec2, clearance: number): Overhead {
   return { footprint: rectFootprint(p0, p1), height: clearance };
 }
 
+/**
+ * Nudges a dragged rectangle out to a usable size. Dragging along an edge is a
+ * natural gesture and gives a rectangle with no depth; better to give it some
+ * than to throw the gesture away.
+ */
+export function atLeast(p0: Vec2, p1: Vec2, minM = 0.4): [Vec2, Vec2] {
+  const out: [Vec2, Vec2] = [{ ...p0 }, { ...p1 }];
+  for (const axis of ['x', 'y'] as const) {
+    const span = Math.abs(out[1][axis] - out[0][axis]);
+    if (span >= minM) continue;
+    const mid = (out[0][axis] + out[1][axis]) / 2;
+    out[0][axis] = mid - minM / 2;
+    out[1][axis] = mid + minM / 2;
+  }
+  return out;
+}
+
+/** The slab covering the whole space, which is the common balcony case. */
+export function overheadOverAll(boundary: Vec2[], clearance: number): Overhead {
+  return { footprint: boundary.map((p) => ({ ...p })), height: clearance };
+}
+
+/**
+ * The slab covering the half of the space furthest from a chosen edge — a
+ * recessed balcony where the soffit stops short of the rail.
+ */
+export function overheadOverPart(
+  boundary: Vec2[],
+  clearance: number,
+  fraction: number,
+  fromEdge: number,
+): Overhead {
+  const n = boundary.length;
+  const a = boundary[fromEdge % n];
+  const b = boundary[(fromEdge + 1) % n];
+
+  // Measure every corner along the inward normal of the chosen edge, then cut
+  // at the given fraction of that depth.
+  let nx = -(b.y - a.y);
+  let ny = b.x - a.x;
+  const len = Math.hypot(nx, ny) || 1;
+  nx /= len;
+  ny /= len;
+  const c = boundary.reduce((acc, p) => ({ x: acc.x + p.x / n, y: acc.y + p.y / n }), { x: 0, y: 0 });
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  if ((c.x - mx) * nx + (c.y - my) * ny < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+
+  const depths = boundary.map((p) => (p.x - a.x) * nx + (p.y - a.y) * ny);
+  const cut = Math.min(...depths) + (Math.max(...depths) - Math.min(...depths)) * fraction;
+
+  // Clip the ring against the cut line, keeping the side nearest the edge.
+  const out: Vec2[] = [];
+  for (let i = 0; i < n; i++) {
+    const p = boundary[i];
+    const q = boundary[(i + 1) % n];
+    const dp = depths[i];
+    const dq = depths[(i + 1) % n];
+    if (dp <= cut) out.push({ ...p });
+    if ((dp < cut && dq > cut) || (dp > cut && dq < cut)) {
+      const t = (cut - dp) / (dq - dp);
+      out.push({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
+    }
+  }
+  return { footprint: out.length >= 3 ? out : boundary.map((p) => ({ ...p })), height: clearance };
+}
+
 /** Compass dial: pointer offset to a bearing clockwise from north. */
 export function bearingFromPointer(mx: number, my: number, cx: number, cy: number): number {
   const b = Math.atan2(mx - cx, -(my - cy));

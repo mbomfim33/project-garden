@@ -35,6 +35,8 @@ export type EditorScene = {
   selectedVertex: number;
   selectedEdge: number;
   selectedObstacle: number;
+  /** Edge the pointer is over in the sidebar list, highlighted on the plan. */
+  hoveredEdge: number;
   calibrationLine: [Vec2, Vec2] | null;
   /** Rectangle being dragged out, before it's committed. */
   pendingRect: [Vec2, Vec2] | null;
@@ -68,14 +70,14 @@ export function drawEditor(
   if (scene.closed && space.boundary.length >= 3) {
     if (!space.base) drawFloor(ctx, project, space);
     drawObstacles(ctx, project, space);
-    drawWalls(ctx, project, space);
-    drawOverhead(ctx, project, space);
+    drawWalls(ctx, project, space, scene.hoveredEdge >= 0 ? scene.hoveredEdge : scene.selectedEdge);
+    drawOverhead(ctx, project, space, true);
     drawDoors(ctx, project, space);
   } else if (space.boundary.length) {
     drawObstacles(ctx, project, space);
   }
 
-  drawWallHeights(ctx, project, space, scene);
+  drawEdgeLabels(ctx, project, space, scene);
   drawSelectedEdge(ctx, project, space, scene.selectedEdge);
   drawSelectedObstacle(ctx, project, space, scene.selectedObstacle);
 
@@ -101,8 +103,11 @@ export function drawEditor(
   }
 }
 
-/** A number beside every wall, so heights are visible without clicking around. */
-function drawWallHeights(
+/**
+ * Names every edge beside itself — number, state and effective height — so the
+ * plan can be read without selecting anything.
+ */
+function drawEdgeLabels(
   ctx: CanvasRenderingContext2D,
   project: Project,
   space: Space,
@@ -115,9 +120,10 @@ function drawWallHeights(
 
   for (let i = 0; i < n; i++) {
     const e = space.edges[i];
-    if (!e || e.wall === 'none' || e.height <= 0) continue;
     const a = project(space.boundary[i]);
     const b = project(space.boundary[(i + 1) % n]);
+    if (Math.hypot(b.x - a.x, b.y - a.y) < 26) continue;
+
     const cx = (a.x + b.x) / 2;
     const cy = (a.y + b.y) / 2;
 
@@ -126,13 +132,20 @@ function drawWallHeights(
     let nx = cx - mid.x;
     let ny = cy - mid.y;
     const len = Math.hypot(nx, ny) || 1;
-    nx = (nx / len) * 13;
-    ny = (ny / len) * 13;
+    nx = (nx / len) * 15;
+    ny = (ny / len) * 15;
 
-    const label = e.wall === 'half' ? `${(e.height / 2).toFixed(1)}m` : `${e.height.toFixed(1)}m`;
-    drawLabel(ctx, cx + nx, cy + ny, label, COL.sage, 9);
+    const on = i === scene.hoveredEdge || i === scene.selectedEdge;
+    const open = !e || e.wall === 'none' || e.height <= 0;
+    const text = open
+      ? `${i + 1} · open`
+      : `${i + 1} · ${e.wall === 'half' ? 'half' : 'wall'} ${effectiveHeight(e.wall, e.height).toFixed(1)}m`;
+
+    drawLabel(ctx, cx + nx, cy + ny, text, on ? '#ffffff' : open ? COL.dim : COL.sage, on ? 10 : 9);
   }
 }
+
+const effectiveHeight = (wall: string, height: number) => (wall === 'half' ? height / 2 : height);
 
 function drawSelectedEdge(
   ctx: CanvasRenderingContext2D,

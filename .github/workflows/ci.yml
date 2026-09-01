@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only by default; nothing here needs to write to the repo.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions are pinned to a commit, not a tag. A tag can be moved to point
+      # at new code; a commit can't.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # ci, not install: builds strictly from the lockfile and fails if
+      # package.json and the lockfile disagree. --ignore-scripts keeps any
+      # dependency from executing code during install.
+      - run: npm ci --ignore-scripts
+
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+      # Catches a dependency drifting off its pin.
+      - name: Check the lockfile is unchanged
+        run: git diff --exit-code -- package-lock.json

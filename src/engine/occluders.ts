@@ -1,4 +1,4 @@
-import type { Space, Vec2 } from '../space/types';
+import type { Edge, Space, Vec2 } from '../space/types';
 import type { Sun } from './solar';
 import { bounds, centroid, hull } from './geom';
 
@@ -9,6 +9,8 @@ export type Occluder = {
   kind: 'vertical' | 'overhead';
   /** Blocks the ground underneath — a shed does, a tree doesn't. */
   solid?: boolean;
+  /** Set when this came from a boundary edge, so a renderer can style it. */
+  edge?: number;
 };
 
 /** Walls get a little thickness so they have a footprint to project. */
@@ -30,6 +32,25 @@ export function shadowOf(occ: Occluder, s: Sun, worldDiag: number): Vec2[] {
   return occ.kind === 'overhead' ? moved : hull(occ.footprint.concat(moved));
 }
 
+/** The stretch of an edge a wall actually covers, clamped and ordered. */
+export function edgeSpan(edge: Edge): { from: number; to: number } {
+  if (!edge.span) return { from: 0, to: 1 };
+  const from = Math.max(0, Math.min(1, edge.span.from));
+  const to = Math.max(0, Math.min(1, edge.span.to));
+  return from <= to ? { from, to } : { from: to, to: from };
+}
+
+/** How tall this wall actually stands: a half wall reaches half its height. */
+export function wallHeight(edge: Edge): number {
+  if (edge.wall === 'none') return 0;
+  return edge.wall === 'half' ? edge.height / 2 : edge.height;
+}
+
+const lerp = (a: Vec2, b: Vec2, t: number): Vec2 => ({
+  x: a.x + (b.x - a.x) * t,
+  y: a.y + (b.y - a.y) * t,
+});
+
 /** Turns an authored space into the list the shadow pass walks. */
 export function occludersOf(space: Space): Occluder[] {
   const out: Occluder[] = [];
@@ -40,9 +61,14 @@ export function occludersOf(space: Space): Occluder[] {
     for (let i = 0; i < n; i++) {
       const e = space.edges[i];
       if (!e || e.wall === 'none' || e.height <= 0) continue;
-      const a = space.boundary[i];
-      const b = space.boundary[(i + 1) % n];
-      const h = e.wall === 'half' ? e.height / 2 : e.height;
+      const corner = space.boundary[i];
+      const next = space.boundary[(i + 1) % n];
+
+      // Only the covered stretch casts shade; the rest of the edge is a gap.
+      const { from, to } = edgeSpan(e);
+      if (to - from <= 1e-6) continue;
+      const a = lerp(corner, next, from);
+      const b = lerp(corner, next, to);
 
       let nx = -(b.y - a.y);
       let ny = b.x - a.x;
@@ -62,9 +88,10 @@ export function occludersOf(space: Space): Occluder[] {
       const oy = ny * WALL_THICK;
       out.push({
         footprint: [a, b, { x: b.x + ox, y: b.y + oy }, { x: a.x + ox, y: a.y + oy }],
-        height: h,
+        height: wallHeight(e),
         kind: 'vertical',
         solid: false,
+        edge: i,
       });
     }
   }

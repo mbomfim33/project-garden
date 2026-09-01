@@ -45,7 +45,13 @@ export function gardenSeed(): Space {
     name: 'Back garden',
     type: 'garden',
     boundary: rect(0, 0, 10, 8),
-    edges: [OPEN, OPEN, { wall: 'full', height: 1.8, door: 0.3 }, { wall: 'half', height: 1.9 }],
+    edges: [
+      OPEN,
+      OPEN,
+      { wall: 'full', height: 1.8, door: 0.3 },
+      // The fence stops 1.8 m short of the far corner, and light comes in there.
+      { wall: 'half', height: 1.9, span: { from: 0.225, to: 1 } },
+    ],
     obstacles: [
       { footprint: rect(0, 6.5, 6, 8), height: 5, solid: true, label: 'House' },
       { footprint: rect(8.7, 6.7, 10, 8), height: 2.6, solid: true, label: 'Shed' },
