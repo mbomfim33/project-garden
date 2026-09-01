@@ -6,28 +6,31 @@ import {
   solveSimilarity,
   worldToImagePx,
 } from '../space/calibration';
-import { bounds, pip, wallHeight } from '../engine';
+import { area, bounds, pip, wallHeight } from '../engine';
 import { fileToBaseImage } from '../view/baseImage';
 import type { Action, EditorDoc } from './editorReducer';
-import { NEEDS_SHAPE, type Tool, overheadOverAll, overheadOverPart } from './tools';
+import { type Tool, overheadOverAll, overheadOverPart } from './tools';
 import { CompassDial } from './CompassDial';
 import { EdgeList } from './EdgeList';
-
-const TOOLS: { key: Tool; label: string; key2: string }[] = [
-  { key: 'select', label: 'Select', key2: 'V' },
-  { key: 'draw', label: 'Draw', key2: 'D' },
-  { key: 'insert', label: 'Add corner', key2: 'A' },
-  { key: 'wall', label: 'Walls', key2: 'W' },
-  { key: 'door', label: 'Door', key2: 'R' },
-  { key: 'box', label: 'Structure', key2: 'B' },
-  { key: 'tree', label: 'Tree', key2: 'T' },
-  { key: 'overhead', label: 'Overhead', key2: 'O' },
-];
+import { ObstacleList } from './ObstacleList';
+import { Panel } from './Panel';
 
 /** How wide the image is assumed to be before anyone calibrates it. */
 const ASSUMED_SPAN_M: Record<Space['type'], number> = { balcony: 8, garden: 25, land: 80 };
 
-type Props = {
+type PanelKey = 'space' | 'edges' | 'things' | 'overhead' | 'where' | 'image' | '';
+
+/** Which card the current tool is about, so it opens itself. */
+const PANEL_FOR_TOOL: Partial<Record<Tool, PanelKey>> = {
+  wall: 'edges',
+  door: 'edges',
+  box: 'things',
+  tree: 'things',
+  overhead: 'overhead',
+  calibrate: 'image',
+};
+
+export type SidebarProps = {
   doc: EditorDoc;
   tool: Tool;
   setTool: (t: Tool) => void;
@@ -50,102 +53,188 @@ type Props = {
   notice: string | null;
   setNotice: (s: string | null) => void;
   markDirty: () => void;
-  undo: () => void;
-  redo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  fitView: () => void;
+  seedRect: (w: number, h: number) => void;
+  closeShape: () => void;
 };
 
-export function EditorSidebar(props: Props) {
+export function EditorSidebar(props: SidebarProps) {
   const { doc, tool, setTool, commit, markDirty } = props;
   const { space } = doc;
-  const obstacle = space.obstacles[props.selectedObstacle];
+
+  // Picking up a tool brings its card forward rather than leaving you to hunt
+  // for it; opening one by hand overrides that until the tool changes again.
+  const [override, setOverride] = useState<{ tool: Tool; key: PanelKey } | null>(null);
+  const auto: PanelKey = PANEL_FOR_TOOL[tool] ?? (doc.closed ? 'edges' : 'space');
+  const open = override?.tool === tool ? override.key : auto;
+  const toggle = (key: PanelKey) => setOverride({ tool, key: open === key ? '' : key });
 
   const act = (a: Action) => {
     commit(a);
     markDirty();
   };
 
+  const walls = space.edges.filter((e) => wallHeight(e) > 0).length;
+  const doors = space.edges.filter((e) => e.door != null).length;
+
   return (
     <aside className="sidebar">
-      <section>
-        <h3>Space</h3>
-        <input
-          type="text"
-          value={space.name}
-          onChange={(e) => act({ kind: 'SET_NAME', name: e.target.value })}
-          aria-label="Name"
-        />
-        <div className="row">
-          <button onClick={props.undo} disabled={!props.canUndo}>
-            Undo
-          </button>
-          <button onClick={props.redo} disabled={!props.canRedo}>
-            Redo
-          </button>
-          <button onClick={props.fitView}>Fit view</button>
-        </div>
-      </section>
-
       {props.notice ? (
         <p className="notice" role="status">
           {props.notice}
         </p>
       ) : null}
 
-      <section>
-        <h3>Tools</h3>
-        <div className="toolgrid">
-          {TOOLS.map((t) => (
-            <button
-              key={t.key}
-              aria-pressed={tool === t.key}
-              disabled={NEEDS_SHAPE.includes(t.key) && !doc.closed}
-              onClick={() => setTool(t.key)}
-              title={`${t.label} (${t.key2})`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {!doc.closed ? (
-          <ShapeStart doc={doc} act={act} setTool={setTool} />
-        ) : (
-          <p className="hint">Shift-drag pans, scroll zooms. Cmd-Z undoes.</p>
-        )}
-      </section>
-
-      {tool === 'box' ? (
-        <section>
-          <h3>New structure</h3>
-          <NumberField label="Height" value={props.boxHeight} onChange={props.setBoxHeight} step={0.1} min={0.1} />
-          <p className="hint">Drag a rectangle. Blocks the ground under it as well as casting shade.</p>
-        </section>
+      {!doc.closed ? (
+        <ShapeStart doc={doc} seedRect={props.seedRect} closeShape={props.closeShape} />
       ) : null}
 
-      {tool === 'tree' ? (
-        <section>
-          <h3>New tree</h3>
-          <NumberField label="Canopy r" value={props.treeRadius} onChange={props.setTreeRadius} step={0.1} min={0.2} />
-          <NumberField label="Height" value={props.treeHeight} onChange={props.setTreeHeight} step={0.1} min={0.2} />
-          <p className="hint">Casts shade, but you can still plant underneath.</p>
-        </section>
+      <Panel
+        title="Space"
+        summary={doc.closed ? `${area(space.boundary).toFixed(1)} m²` : 'being drawn'}
+        open={open === 'space'}
+        onToggle={() => toggle('space')}
+      >
+        <label className="field stack">
+          Name
+          <input
+            type="text"
+            value={space.name}
+            onChange={(e) => act({ kind: 'SET_NAME', name: e.target.value })}
+          />
+        </label>
+        <dl className="facts">
+          <dt>Kind</dt>
+          <dd>{space.type}</dd>
+          <dt>Corners</dt>
+          <dd>{space.boundary.length}</dd>
+          <dt>Area</dt>
+          <dd>{doc.closed ? `${area(space.boundary).toFixed(1)} m²` : '—'}</dd>
+        </dl>
+      </Panel>
+
+      {doc.closed ? (
+        <Panel
+          title="Edges"
+          summary={`${space.boundary.length} · ${walls} walled${doors ? ` · ${doors} door` : ''}`}
+          open={open === 'edges'}
+          onToggle={() => toggle('edges')}
+        >
+          <EdgeList
+            space={space}
+            selected={props.selectedEdge}
+            onSelect={props.setSelectedEdge}
+            onHover={props.setHoveredEdge}
+            act={act}
+          />
+        </Panel>
       ) : null}
 
-      {tool === 'overhead' ? (
-        <section>
-          <h3>Overhead slab</h3>
-          <NumberField label="Clearance" value={props.clearance} onChange={props.setClearance} step={0.1} min={0.3} />
-          <p className="hint">
-            How high above the floor it sits. On a balcony this is usually the single biggest
-            thing blocking the sun.
-          </p>
-          {doc.closed ? (
+      {doc.closed ? (
+        <Panel
+          title="Things in it"
+          summary={space.obstacles.length ? `${space.obstacles.length}` : 'none'}
+          open={open === 'things'}
+          onToggle={() => toggle('things')}
+        >
+          {tool === 'box' ? (
+            <div className="newthing">
+              <span className="tag accent">New structure</span>
+              <NumberField
+                label="Tall"
+                value={props.boxHeight}
+                onChange={props.setBoxHeight}
+                step={0.1}
+                min={0.1}
+              />
+              <p className="hint">Drag a rectangle on the plan.</p>
+            </div>
+          ) : null}
+
+          {tool === 'tree' ? (
+            <div className="newthing">
+              <span className="tag accent">New tree</span>
+              <div className="pair">
+                <NumberField
+                  label="Canopy"
+                  value={props.treeRadius}
+                  onChange={props.setTreeRadius}
+                  step={0.1}
+                  min={0.2}
+                />
+                <NumberField
+                  label="Tall"
+                  value={props.treeHeight}
+                  onChange={props.setTreeHeight}
+                  step={0.1}
+                  min={0.2}
+                />
+              </div>
+              <p className="hint">Click where the trunk goes.</p>
+            </div>
+          ) : null}
+
+          <ObstacleList
+            space={space}
+            selected={props.selectedObstacle}
+            onSelect={props.setSelectedObstacle}
+            act={act}
+          />
+        </Panel>
+      ) : null}
+
+      {doc.closed ? (
+        <Panel
+          title="Overhead"
+          summary={space.overhead ? `${space.overhead.height.toFixed(1)} m up` : 'open sky'}
+          open={open === 'overhead'}
+          onToggle={() => toggle('overhead')}
+        >
+          {space.overhead ? (
             <>
-              <p className="hint sage">Drag a rectangle on the plan, or take a preset:</p>
+              <SlabSection clearance={space.overhead.height} coverage={slabCoverage(space)} />
+              <NumberField
+                label="Clearance"
+                value={space.overhead.height}
+                step={0.1}
+                min={0.3}
+                onChange={(height) =>
+                  act({ kind: 'SET_OVERHEAD', overhead: { ...space.overhead!, height } })
+                }
+              />
               <div className="row">
-                <button onClick={() => act({ kind: 'SET_OVERHEAD', overhead: overheadOverAll(space.boundary, props.clearance) })}>
+                <button aria-pressed={tool === 'overhead'} onClick={() => setTool('overhead')}>
+                  Redraw
+                </button>
+                <button
+                  className="danger"
+                  onClick={() => act({ kind: 'SET_OVERHEAD', overhead: undefined })}
+                >
+                  Remove
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="hint">
+                A roof, soffit or pergola above the floor. It blocks high sun and lets low sun in
+                underneath, so it bites hardest in summer.
+              </p>
+              <NumberField
+                label="Clearance"
+                value={props.clearance}
+                onChange={props.setClearance}
+                step={0.1}
+                min={0.3}
+              />
+              <div className="row">
+                <button
+                  onClick={() =>
+                    act({
+                      kind: 'SET_OVERHEAD',
+                      overhead: overheadOverAll(space.boundary, props.clearance),
+                    })
+                  }
+                >
                   Over all of it
                 </button>
               </div>
@@ -169,195 +258,180 @@ export function EditorSidebar(props: Props) {
                   </button>
                 ))}
               </div>
-              <p className="hint">
-                Back means the part furthest from the most open edge — a soffit that stops short
-                of the rail.
-              </p>
+              <div className="row">
+                <button aria-pressed={tool === 'overhead'} onClick={() => setTool('overhead')}>
+                  Or drag it out
+                </button>
+              </div>
             </>
-          ) : null}
-        </section>
+          )}
+        </Panel>
       ) : null}
 
-      {doc.closed ? (
-        <EdgeList
-          space={space}
-          selected={props.selectedEdge}
-          onSelect={props.setSelectedEdge}
-          onHover={props.setHoveredEdge}
-          act={act}
-        />
-      ) : null}
-
-      {obstacle ? (
-        <section>
-          <h3>{obstacle.label ?? 'Obstacle'}</h3>
+      <Panel
+        title="Where on earth"
+        summary={`${Math.abs(space.geo.lat).toFixed(1)}° ${space.geo.lat >= 0 ? 'N' : 'S'}`}
+        open={open === 'where'}
+        onToggle={() => toggle('where')}
+      >
+        <div className="pair">
           <NumberField
-            label="Height"
-            value={obstacle.height}
-            step={0.1}
-            min={0.1}
-            onChange={(height) => act({ kind: 'SET_OBSTACLE', i: props.selectedObstacle, patch: { height } })}
+            label="Latitude"
+            value={space.geo.lat}
+            step={0.01}
+            min={-90}
+            max={90}
+            onChange={(lat) => act({ kind: 'SET_GEO', patch: { lat } })}
           />
-          <div className="row">
-            <button
-              onClick={() =>
-                act({
-                  kind: 'SET_OBSTACLE',
-                  i: props.selectedObstacle,
-                  patch: { solid: !obstacle.solid },
-                })
-              }
-            >
-              {obstacle.solid ? 'Blocks the ground' : 'Can plant under it'}
-            </button>
-            <button
-              className="danger"
-              onClick={() => {
-                act({ kind: 'DELETE_OBSTACLE', i: props.selectedObstacle });
-                props.setSelectedObstacle(-1);
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {space.overhead ? (
-        <section>
-          <h3>Overhead</h3>
-          <SlabSection clearance={space.overhead.height} coverage={slabCoverage(space)} />
           <NumberField
-            label="Clearance"
-            value={space.overhead.height}
-            step={0.1}
-            min={0.3}
-            onChange={(height) =>
-              act({ kind: 'SET_OVERHEAD', overhead: { ...space.overhead!, height } })
-            }
+            label="Longitude"
+            value={space.geo.lng ?? 0}
+            step={0.01}
+            min={-180}
+            max={180}
+            onChange={(lng) => act({ kind: 'SET_GEO', patch: { lng } })}
           />
-          <div className="row">
-            <button
-              aria-pressed={props.tool === 'overhead'}
-              onClick={() => setTool('overhead')}
-            >
-              Redraw it
-            </button>
-            <button className="danger" onClick={() => act({ kind: 'SET_OVERHEAD', overhead: undefined })}>
-              Remove
-            </button>
-          </div>
-          <p className="hint">
-            Shown on the plan as the hatched blue outline. It blocks high sun and lets low sun in
-            underneath, so it matters most in summer.
-          </p>
-        </section>
-      ) : null}
+        </div>
+        <p className="hint">Latitude sets how high the sun climbs. Negative is south.</p>
 
-      <section>
-        <h3>Where on earth</h3>
-        <NumberField
-          label="Latitude"
-          value={space.geo.lat}
-          step={0.01}
-          min={-90}
-          max={90}
-          onChange={(lat) => act({ kind: 'SET_GEO', patch: { lat } })}
-        />
-        <NumberField
-          label="Longitude"
-          value={space.geo.lng ?? 0}
-          step={0.01}
-          min={-180}
-          max={180}
-          onChange={(lng) => act({ kind: 'SET_GEO', patch: { lng } })}
-        />
-        <p className="hint">
-          Latitude decides how high the sun climbs and how far the seasons swing. Negative is
-          south.
-        </p>
-        <div className="row top">
+        <div className="northrow">
           <CompassDial
             bearing={space.geo.bearing ?? 0}
             onChange={(bearing) => act({ kind: 'SET_GEO', patch: { bearing } })}
           />
           <div>
-            <p className="hint">
-              Turn the needle until it points the way true north lies on your drawing.
+            <span className="tag">Which way is north</span>
+            <p className="hint">Drag the needle to where true north lies on your drawing.</p>
+            <p className="hint accent">
+              {Math.round(((space.geo.bearing ?? 0) * 180) / Math.PI)}° off north
             </p>
-            <p className="hint accent">{Math.round(((space.geo.bearing ?? 0) * 180) / Math.PI)}° off north</p>
           </div>
         </div>
-      </section>
+      </Panel>
 
-      <BasePanel {...props} />
+      <Panel
+        title="Traced image"
+        summary={
+          space.base
+            ? `${(space.base.calibration.metresPerPixel * space.base.widthPx).toFixed(0)} m across`
+            : 'none'
+        }
+        open={open === 'image'}
+        onToggle={() => toggle('image')}
+      >
+        <BasePanel {...props} act={act} />
+      </Panel>
     </aside>
   );
 }
 
 function ShapeStart({
   doc,
-  act,
-  setTool,
+  seedRect,
+  closeShape,
 }: {
   doc: EditorDoc;
-  act: (a: Action) => void;
-  setTool: (t: Tool) => void;
+  seedRect: (w: number, h: number) => void;
+  closeShape: () => void;
 }) {
   const [w, setW] = useState(doc.space.type === 'balcony' ? 4 : 10);
   const [h, setH] = useState(doc.space.type === 'balcony' ? 2.5 : 8);
+  const corners = doc.space.boundary.length;
 
   return (
-    <>
+    <div className="starter">
+      <span className="tag accent">Draw the outline first</span>
       <p className="hint">
-        {doc.space.boundary.length
-          ? `${doc.space.boundary.length} corner${doc.space.boundary.length === 1 ? '' : 's'} down. Close the shape when you get back to the first one.`
-          : 'Draw it corner by corner, or start from a rectangle and drag it about.'}
+        {corners
+          ? `${corners} corner${corners === 1 ? '' : 's'} down. Click the first one again to close it.`
+          : 'Click corner by corner on the plan, or start from a rectangle.'}
       </p>
-      <div className="row">
-        <NumberField label="W" value={w} onChange={setW} step={0.1} min={0.5} />
-        <NumberField label="D" value={h} onChange={setH} step={0.1} min={0.5} />
+      <div className="pair">
+        <NumberField label="Wide" value={w} onChange={setW} step={0.1} min={0.5} />
+        <NumberField label="Deep" value={h} onChange={setH} step={0.1} min={0.5} />
       </div>
       <div className="row">
-        <button
-          onClick={() => {
-            act({ kind: 'SEED_RECT', w, h, walled: doc.space.type === 'balcony' });
-            setTool('select');
-          }}
-        >
-          Start from a rectangle
-        </button>
-      </div>
-      {doc.space.boundary.length >= 3 ? (
-        <div className="row">
-          <button
-            className="primary"
-            onClick={() => {
-              act({ kind: 'CLOSE' });
-              setTool('select');
-            }}
-          >
-            Close the shape
+        <button onClick={() => seedRect(w, h)}>Start from a rectangle</button>
+        {corners >= 3 ? (
+          <button className="primary" onClick={closeShape}>
+            Close it
           </button>
-        </div>
-      ) : null}
-    </>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
-function BasePanel(props: Props) {
-  const { doc, commit, markDirty, calibrationLine, setCalibrationLine, setNotice, setTool } = props;
+/** The longest open edge, which is the side a soffit usually stops short of. */
+function openestEdge(space: Space): number {
+  let best = 0;
+  let bestLen = -1;
+  const n = space.boundary.length;
+  for (let i = 0; i < n; i++) {
+    const e = space.edges[i];
+    if (e && wallHeight(e) > 0) continue;
+    const a = space.boundary[i];
+    const b = space.boundary[(i + 1) % n];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len > bestLen) {
+      bestLen = len;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * How much of the floor sits under the slab. Sampled rather than clipped: an
+ * exact polygon intersection is a lot of code for a number shown to the nearest
+ * per cent.
+ */
+function slabCoverage(space: Space): number {
+  const slab = space.overhead;
+  if (!slab || space.boundary.length < 3) return 0;
+  const b = bounds(space.boundary);
+  const step = Math.max((b.maxX - b.minX) / 60, 0.02);
+  let inside = 0;
+  let under = 0;
+  for (let x = b.minX; x <= b.maxX; x += step) {
+    for (let y = b.minY; y <= b.maxY; y += step) {
+      if (!pip(x, y, space.boundary)) continue;
+      inside++;
+      if (pip(x, y, slab.footprint)) under++;
+    }
+  }
+  return inside ? under / inside : 0;
+}
+
+/** A side-on sketch of the floor and the slab above it. */
+function SlabSection({ clearance, coverage }: { clearance: number; coverage: number }) {
+  const band = clearance < 2.2 ? 'low' : clearance < 3 ? 'mid' : 'high';
+  return (
+    <div className="slab">
+      <span className="section" aria-hidden>
+        <i className={`roof ${band}`} />
+        <i className={`gap ${band}`} />
+        <i className="ground" />
+      </span>
+      <span>
+        {clearance.toFixed(1)} m up, over {Math.round(coverage * 100)}% of the floor
+        <br />
+        {band === 'low' ? 'A low soffit — deep shade underneath.' : null}
+        {band === 'mid' ? 'A typical balcony soffit.' : null}
+        {band === 'high' ? 'High enough that midday sun still reaches in.' : null}
+      </span>
+    </div>
+  );
+}
+
+function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
+  const { doc, act, calibrationLine, setCalibrationLine, setNotice, setTool } = props;
   const { space } = doc;
   const fileRef = useRef<HTMLInputElement>(null);
   const [realLength, setRealLength] = useState(10);
   const [a, setA] = useState<LatLng>({ lat: 0, lng: 0 });
   const [b, setB] = useState<LatLng>({ lat: 0, lng: 0 });
   const [busy, setBusy] = useState(false);
-
-  const act = (action: Action) => {
-    commit(action);
-    markDirty();
-  };
 
   const load = async (file: File) => {
     setBusy(true);
@@ -378,9 +452,7 @@ function BasePanel(props: Props) {
           },
         },
       });
-      setNotice(
-        `Loaded at a guessed ${span} m across. Calibrate it against something you know the length of.`,
-      );
+      setNotice(`Loaded at a guessed ${span} m across — now drag a line over something you know.`);
       setTool('calibrate');
     } catch (e) {
       setNotice(e instanceof Error ? e.message : 'Could not read that image.');
@@ -416,15 +488,16 @@ function BasePanel(props: Props) {
     if (!space.base || !calibrationLine) return;
     const cal = space.base.calibration;
     try {
-      const sim = solveSimilarity(
-        worldToImagePx(calibrationLine[0], cal),
-        worldToImagePx(calibrationLine[1], cal),
-        a,
-        b,
-      );
-      const next = georefToCalibration(sim, worldToImagePx(calibrationLine[0], cal));
-      act({ kind: 'SET_BASE', base: { ...space.base, calibration: next, georef: { a, b } } });
-      act({ kind: 'SET_GEO', patch: { lat: a.lat, lng: a.lng, bearing: bearingFromSimilarity(sim) } });
+      const originPx = worldToImagePx(calibrationLine[0], cal);
+      const sim = solveSimilarity(originPx, worldToImagePx(calibrationLine[1], cal), a, b);
+      act({
+        kind: 'SET_BASE',
+        base: { ...space.base, calibration: georefToCalibration(sim, originPx), georef: { a, b } },
+      });
+      act({
+        kind: 'SET_GEO',
+        patch: { lat: a.lat, lng: a.lng, bearing: bearingFromSimilarity(sim) },
+      });
       setCalibrationLine(null);
       setNotice('Georeferenced. Scale, north and latitude all came from those two points.');
       setTool('draw');
@@ -434,7 +507,7 @@ function BasePanel(props: Props) {
   };
 
   return (
-    <section
+    <div
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
@@ -442,14 +515,18 @@ function BasePanel(props: Props) {
         if (file?.type.startsWith('image/')) void load(file);
       }}
     >
-      <h3>Trace over an image</h3>
       {space.base ? (
         <>
-          <p className="hint">
-            {space.base.widthPx}×{space.base.heightPx} px ·{' '}
-            {(space.base.calibration.metresPerPixel * space.base.widthPx).toFixed(1)} m across
-            {space.base.georef ? ' · georeferenced' : ''}
-          </p>
+          <dl className="facts">
+            <dt>Pixels</dt>
+            <dd>
+              {space.base.widthPx}×{space.base.heightPx}
+            </dd>
+            <dt>Scale</dt>
+            <dd>{(space.base.calibration.metresPerPixel * 100).toFixed(1)} cm/px</dd>
+            <dt>North</dt>
+            <dd>{space.base.georef ? 'from two pinned points' : 'set by hand'}</dd>
+          </dl>
           <div className="row">
             <button aria-pressed={props.tool === 'calibrate'} onClick={() => setTool('calibrate')}>
               Calibrate
@@ -460,40 +537,65 @@ function BasePanel(props: Props) {
           </div>
 
           {calibrationLine ? (
-            <>
-              <p className="hint sage">Line drawn. Now tell it what that line really is.</p>
+            <div className="newthing">
+              <span className="tag accent">Line drawn — what is it?</span>
               <div className="row">
-                <NumberField label="Length m" value={realLength} onChange={setRealLength} step={0.1} min={0.1} />
+                <NumberField
+                  label="Long"
+                  value={realLength}
+                  onChange={setRealLength}
+                  step={0.1}
+                  min={0.1}
+                />
                 <button className="primary" onClick={applyScale}>
                   Set scale
                 </button>
               </div>
               <p className="hint">
-                Or, if you know where both ends are in the world, pin them and get north and
-                latitude too.
+                Or pin both ends to real coordinates and get north and latitude too.
               </p>
-              <div className="row">
-                <NumberField label="A lat" value={a.lat} onChange={(lat) => setA({ ...a, lat })} step={0.0001} />
-                <NumberField label="A lng" value={a.lng} onChange={(lng) => setA({ ...a, lng })} step={0.0001} />
+              <div className="pair">
+                <NumberField
+                  label="A lat"
+                  value={a.lat}
+                  onChange={(lat) => setA({ ...a, lat })}
+                  step={0.0001}
+                />
+                <NumberField
+                  label="A lng"
+                  value={a.lng}
+                  onChange={(lng) => setA({ ...a, lng })}
+                  step={0.0001}
+                />
               </div>
-              <div className="row">
-                <NumberField label="B lat" value={b.lat} onChange={(lat) => setB({ ...b, lat })} step={0.0001} />
-                <NumberField label="B lng" value={b.lng} onChange={(lng) => setB({ ...b, lng })} step={0.0001} />
+              <div className="pair">
+                <NumberField
+                  label="B lat"
+                  value={b.lat}
+                  onChange={(lat) => setB({ ...b, lat })}
+                  step={0.0001}
+                />
+                <NumberField
+                  label="B lng"
+                  value={b.lng}
+                  onChange={(lng) => setB({ ...b, lng })}
+                  step={0.0001}
+                />
               </div>
               <div className="row">
                 <button onClick={applyGeoref}>Pin both ends</button>
                 <button className="ghost" onClick={() => setCalibrationLine(null)}>
-                  Clear line
+                  Clear
                 </button>
               </div>
-            </>
+            </div>
           ) : null}
         </>
       ) : (
         <>
           <p className="hint">
-            Drop a top-down photo, a satellite screenshot or a site plan here, then trace over it.
-            A photo taken at an angle won't measure straight.
+            Drop a top-down photo, a satellite screenshot or a site plan here and trace over it. A
+            photo taken at an angle won't measure straight.
           </p>
           <div className="row">
             <button onClick={() => fileRef.current?.click()} disabled={busy}>
@@ -513,68 +615,6 @@ function BasePanel(props: Props) {
           if (file) void load(file);
         }}
       />
-    </section>
-  );
-}
-
-/** The longest open edge, which is the side a soffit usually stops short of. */
-function openestEdge(space: Space): number {
-  let best = 0;
-  let bestLen = -1;
-  const n = space.boundary.length;
-  for (let i = 0; i < n; i++) {
-    const e = space.edges[i];
-    if (e && wallHeight(e) > 0) continue;
-    const a = space.boundary[i];
-    const b = space.boundary[(i + 1) % n];
-    const len = Math.hypot(b.x - a.x, b.y - a.y);
-    if (len > bestLen) {
-      bestLen = len;
-      best = i;
-    }
-  }
-  return best;
-}
-
-/**
- * How much of the floor sits under the slab. Sampled rather than clipped: an
- * exact polygon intersection is a lot of code for a number we show to the
- * nearest per cent.
- */
-function slabCoverage(space: Space): number {
-  const slab = space.overhead;
-  if (!slab || space.boundary.length < 3) return 0;
-  const b = bounds(space.boundary);
-  const step = Math.max((b.maxX - b.minX) / 60, 0.02);
-  let inside = 0;
-  let under = 0;
-  for (let x = b.minX; x <= b.maxX; x += step) {
-    for (let y = b.minY; y <= b.maxY; y += step) {
-      if (!pip(x, y, space.boundary)) continue;
-      inside++;
-      if (pip(x, y, slab.footprint)) under++;
-    }
-  }
-  return inside ? under / inside : 0;
-}
-
-/** A side-on sketch of the floor and the slab above it. */
-function SlabSection({ clearance, coverage }: { clearance: number; coverage: number }) {
-  const band = clearance < 2.2 ? 'low' : clearance < 3 ? 'mid' : 'high';
-  return (
-    <div className="slab">
-      <span className="section" aria-hidden>
-        <i className={`roof ${band}`} />
-        <i className={`gap ${band}`} />
-        <i className="ground" />
-      </span>
-      <span>
-        {clearance.toFixed(1)} m up, over {Math.round(coverage * 100)}% of the floor
-        <br />
-        {band === 'low' ? 'A low soffit — expect deep shade underneath.' : null}
-        {band === 'mid' ? 'A typical balcony soffit.' : null}
-        {band === 'high' ? 'High enough that midday sun still reaches in.' : null}
-      </span>
     </div>
   );
 }

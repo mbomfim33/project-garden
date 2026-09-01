@@ -1,7 +1,6 @@
 # Project Garden
 
-A sun map studio. Draw your balcony, garden or plot of land, mark what casts shade,
-and watch where the light actually falls across a day and across the seasons.
+I built this app so I can understand where are the best spot to place plants in my balcony, any time of the year.
 
 ```bash
 npm install
