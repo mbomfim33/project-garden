@@ -49,6 +49,9 @@ export function makeT(space: Space, CW: number, CH: number, padM = 1): T {
   };
 }
 
+/** Breathing room around the boundary: a big plot wants more than a balcony. */
+export const padForSpace = (space: Space) => (space.type === 'land' ? 2 : 0.6);
+
 /** The exact inverse of makeT, written against nothing but its public surface. */
 export function toWorld(T: T, sx: number, sy: number): Vec2 {
   return { x: (sx - T.X(0)) / T.scale, y: (T.Y(0) - sy) / T.scale };
