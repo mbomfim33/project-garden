@@ -41,7 +41,8 @@ describe('SpaceStore', () => {
     SpaceStore.save(space);
 
     const loaded = SpaceStore.load(space.id);
-    expect(loaded).toEqual({ ...space, schemaVersion: SCHEMA_VERSION });
+    // Reading fills in the fields a space may leave out.
+    expect(loaded).toEqual({ ...space, overheads: [], schemaVersion: SCHEMA_VERSION });
   });
 
   it('keeps spaces separate and lists them all', () => {
@@ -101,8 +102,24 @@ describe('migrate', () => {
     expect(s.edges).toHaveLength(4);
   });
 
+  it('moves a single old roof into the list of roof pieces', () => {
+    const slab = { footprint: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }], height: 2.6 };
+    const old = { ...square(), schemaVersion: 1, overhead: slab };
+    delete (old as Record<string, unknown>).overheads;
+
+    const s = migrate(old);
+    expect(s.overheads).toEqual([slab]);
+    expect('overhead' in s).toBe(false);
+    expect(s.schemaVersion).toBe(SCHEMA_VERSION);
+  });
+
+  it('gives a space with no roof an empty list rather than nothing', () => {
+    const s = migrate({ ...square(), schemaVersion: 1 });
+    expect(s.overheads).toEqual([]);
+  });
+
   it('refuses a file from a newer build rather than mangling it', () => {
-    expect(() => migrate({ ...square(), schemaVersion: 99 })).toThrow(/newer/);
+    expect(() => migrate({ ...square(), schemaVersion: 999 })).toThrow(/newer/);
   });
 
   it('does not mutate the object it was handed', () => {

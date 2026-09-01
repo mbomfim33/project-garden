@@ -44,6 +44,9 @@ export function SpaceEditor({ space }: { space: Space }) {
   const [treeRadius, setTreeRadius] = useState(1.5);
   const [treeHeight, setTreeHeight] = useState(4.5);
   const [clearance, setClearance] = useState(2.6);
+  const [eave, setEave] = useState(0);
+  const [selectedOverhead, setSelectedOverhead] = useState(-1);
+  const [overheadDraft, setOverheadDraft] = useState<Vec2[]>([]);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [imageTick, setImageTick] = useState(0);
@@ -74,6 +77,8 @@ export function SpaceEditor({ space }: { space: Space }) {
       selectedVertex,
       selectedEdge,
       selectedObstacle,
+      selectedOverhead,
+      overheadDraft,
       hoveredEdge,
       calibrationLine,
       pendingRect,
@@ -89,6 +94,8 @@ export function SpaceEditor({ space }: { space: Space }) {
     selectedVertex,
     selectedEdge,
     selectedObstacle,
+    selectedOverhead,
+    overheadDraft,
     hoveredEdge,
     calibrationLine,
     pendingRect,
@@ -217,6 +224,27 @@ export function SpaceEditor({ space }: { space: Space }) {
       return;
     }
 
+    if (tool === 'overheadTrace') {
+      if (overheadDraft.length >= 3 && distanceToPoint(world, overheadDraft[0]) <= tolM) {
+        commit({
+          kind: 'ADD_OVERHEAD',
+          overhead: { footprint: overheadDraft, height: clearance, label: 'Traced roof' },
+        });
+        setOverheadDraft([]);
+        setSelectedOverhead((doc.space.overheads ?? []).length);
+        setTool('select');
+        setDirty(true);
+        setNotice(`Roof piece added, ${clearance.toFixed(1)} m above the floor.`);
+        return;
+      }
+      const s = snap(world, doc.space.boundary, vp, {
+        prev: overheadDraft[overheadDraft.length - 1],
+        prevPrev: overheadDraft[overheadDraft.length - 2],
+      });
+      setOverheadDraft([...overheadDraft, s.p]);
+      return;
+    }
+
     if (tool === 'box' || tool === 'overhead') {
       canvasRef.current!.setPointerCapture(e.pointerId);
       dragRef.current = { kind: 'rect', start: world, current: world };
@@ -266,6 +294,13 @@ export function SpaceEditor({ space }: { space: Space }) {
         const prev = boundary[boundary.length - 1];
         const prevPrev = boundary[boundary.length - 2];
         const s = snap(world, boundary, vp, { prev, prevPrev });
+        setHoverPoint(s.p);
+        setSnapCue(s);
+      } else if (tool === 'overheadTrace') {
+        const s = snap(world, boundary, vp, {
+          prev: overheadDraft[overheadDraft.length - 1],
+          prevPrev: overheadDraft[overheadDraft.length - 2],
+        });
         setHoverPoint(s.p);
         setSnapCue(s);
       } else if (hoverPoint || snapCue) {
@@ -351,9 +386,10 @@ export function SpaceEditor({ space }: { space: Space }) {
       // no depth. Give it some rather than throwing the gesture away.
       const [p0, p1] = atLeast(drag.start, drag.current);
       if (tool === 'overhead') {
-        commit({ kind: 'SET_OVERHEAD', overhead: makeOverhead(p0, p1, clearance) });
+        commit({ kind: 'ADD_OVERHEAD', overhead: { ...makeOverhead(p0, p1, clearance), label: 'Roof piece' } });
+        setSelectedOverhead((doc.space.overheads ?? []).length);
         setTool('select');
-        setNotice(`Slab added, ${clearance.toFixed(1)} m above the floor.`);
+        setNotice(`Roof piece added, ${clearance.toFixed(1)} m above the floor.`);
       } else {
         commit({ kind: 'ADD_OBSTACLE', obstacle: makeBox(p0, p1, boxHeight) });
         setSelectedObstacle(doc.space.obstacles.length);
@@ -397,7 +433,10 @@ export function SpaceEditor({ space }: { space: Space }) {
         setDirty(true);
         return;
       }
-      if (e.key === 'Escape') setTool('select');
+      if (e.key === 'Escape') {
+        setOverheadDraft([]);
+        setTool('select');
+      }
       const shortcuts: Record<string, Tool> = {
         v: 'select',
         d: 'draw',
@@ -407,6 +446,7 @@ export function SpaceEditor({ space }: { space: Space }) {
         b: 'box',
         t: 'tree',
         o: 'overhead',
+        g: 'overheadTrace',
       };
       const next = shortcuts[e.key.toLowerCase()];
       if (next && (!NEEDS_SHAPE.includes(next) || doc.closed)) setTool(next);
@@ -440,6 +480,10 @@ export function SpaceEditor({ space }: { space: Space }) {
         setHoveredEdge={setHoveredEdge}
         selectedObstacle={selectedObstacle}
         setSelectedObstacle={setSelectedObstacle}
+        selectedOverhead={selectedOverhead}
+        setSelectedOverhead={setSelectedOverhead}
+        eave={eave}
+        setEave={setEave}
         boxHeight={boxHeight}
         setBoxHeight={setBoxHeight}
         treeRadius={treeRadius}
@@ -522,7 +566,7 @@ export function SpaceEditor({ space }: { space: Space }) {
           <span className="k">obstacles</span> <b>{doc.space.obstacles.length}</b>
         </span>
         <span>
-          <span className="k">overhead</span> <b>{doc.space.overhead ? 'yes' : 'none'}</b>
+          <span className="k">roof</span> <b>{(doc.space.overheads ?? []).length || 'none'}</b>
         </span>
         <span className="spacer" />
         <span>

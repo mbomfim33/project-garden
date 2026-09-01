@@ -152,9 +152,22 @@ describe('obstacles and overhead', () => {
     expect(d.space.obstacles).toHaveLength(count - 1);
   });
 
-  it('drops the overhead key rather than leaving an empty one behind', () => {
-    const d = reducer(doc(), { kind: 'SET_OVERHEAD', overhead: undefined });
-    expect('overhead' in d.space).toBe(false);
+  it('keeps roof pieces as a list, so several can be added', () => {
+    const slab = { footprint: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }], height: 2.4 };
+    let d = doc(balconySeed());
+    const before = (d.space.overheads ?? []).length;
+
+    d = reducer(d, { kind: 'ADD_OVERHEAD', overhead: slab });
+    expect(d.space.overheads).toHaveLength(before + 1);
+
+    d = reducer(d, { kind: 'SET_OVERHEAD', i: before, patch: { height: 3.1 } });
+    expect(d.space.overheads![before].height).toBe(3.1);
+
+    d = reducer(d, { kind: 'DELETE_OVERHEAD', i: before });
+    expect(d.space.overheads).toHaveLength(before);
+
+    d = reducer(d, { kind: 'CLEAR_OVERHEADS' });
+    expect(d.space.overheads).toHaveLength(0);
   });
 });
 
