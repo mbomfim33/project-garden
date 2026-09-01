@@ -8,7 +8,7 @@ export function decodeImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('That file could not be read as an image.'));
+    img.onerror = () => reject(new Error('That file is not an image the browser can read.'));
     img.src = url;
   });
 }

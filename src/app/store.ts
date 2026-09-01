@@ -80,7 +80,7 @@ export const useSpaces = create<State>((set) => ({
       set((s) => ({ spaces: { ...s.spaces, [space.id]: space }, error: null }));
       return space;
     } catch (e) {
-      set({ error: e instanceof Error ? e.message : 'That file could not be read as a space.' });
+      set({ error: e instanceof Error ? e.message : 'That file is not a saved space.' });
       return null;
     }
   },

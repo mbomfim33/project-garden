@@ -27,7 +27,7 @@ export const DEMO_IDS = ['demo-balcony', 'demo-garden', 'demo-plot'] as const;
 export function balconySeed(): Space {
   return {
     id: 'demo-balcony',
-    name: 'Recessed balcony',
+    name: 'Balcony',
     type: 'balcony',
     boundary: rect(0, 0, 4, 2.5),
     edges: [wall(3, 0.5), wall(2.8), OPEN, wall(2.8)],
@@ -79,7 +79,7 @@ export function landSeed(): Space {
   ];
   return {
     id: 'demo-plot',
-    name: 'Half-hectare plot',
+    name: 'Plot of land',
     type: 'land',
     boundary,
     edges: boundary.map(() => ({ ...OPEN })),

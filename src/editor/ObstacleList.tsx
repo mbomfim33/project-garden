@@ -16,9 +16,7 @@ export function ObstacleList({
 }) {
   if (!space.obstacles.length) {
     return (
-      <p className="hint">
-        Nothing standing in the space yet. Use Structure for a shed or a wall, Tree for a canopy.
-      </p>
+      <p className="hint">Nothing here yet. Use Structure for a shed or a wall, or Tree.</p>
     );
   }
 
@@ -70,8 +68,8 @@ export function ObstacleList({
                 </div>
                 <p className="hint">
                   {o.solid
-                    ? 'Nothing grows under it, and it casts shade.'
-                    : 'Casts shade, but the ground under it still counts.'}
+                    ? 'It makes shade, and the ground under it does not count.'
+                    : 'It makes shade, but you can still use the ground under it.'}
                 </p>
 
                 <div className="row">

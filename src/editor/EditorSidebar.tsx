@@ -136,7 +136,7 @@ export function EditorSidebar(props: SidebarProps) {
 
       {doc.closed ? (
         <Panel
-          title="Things in it"
+          title="Things inside"
           summary={space.obstacles.length ? `${space.obstacles.length}` : 'none'}
           open={open === 'things'}
           onToggle={() => toggle('things')}
@@ -248,14 +248,14 @@ export function EditorSidebar(props: SidebarProps) {
                 })}
               </ul>
               <p className="hint">
-                Pieces may overlap and may reach past the walls. Add as many as the real roof
-                has.
+                Pieces can overlap and can go past the walls. Add one for each part of the
+                roof.
               </p>
             </>
           ) : (
             <p className="hint">
-              A roof, soffit or pergola above the floor. It blocks high sun and lets low sun in
-              underneath, so it matters most in summer.
+              Anything above the floor: a roof, a balcony above you, a pergola. It stops the
+              sun when the sun is high, and lets it in when the sun is low.
             </p>
           )}
 
@@ -278,8 +278,8 @@ export function EditorSidebar(props: SidebarProps) {
               />
             </div>
             <p className="hint">
-              Past walls is how far the roof reaches beyond the outline, in metres. An eave of
-              0.3 is common.
+              Past walls is how far the roof goes outside the outline, in metres. 0.3 is
+              common.
             </p>
             <div className="row">
               <button
@@ -342,7 +342,7 @@ export function EditorSidebar(props: SidebarProps) {
       ) : null}
 
       <Panel
-        title="Where on earth"
+        title="Place"
         summary={`${Math.abs(space.geo.lat).toFixed(1)}° ${space.geo.lat >= 0 ? 'N' : 'S'}`}
         open={open === 'where'}
         onToggle={() => toggle('where')}
@@ -365,7 +365,7 @@ export function EditorSidebar(props: SidebarProps) {
             onChange={(lng) => act({ kind: 'SET_GEO', patch: { lng } })}
           />
         </div>
-        <p className="hint">Latitude sets how high the sun climbs. Negative is south.</p>
+        <p className="hint">Latitude changes how high the sun goes. Use a minus sign for south.</p>
 
         <div className="northrow">
           <CompassDial
@@ -373,17 +373,17 @@ export function EditorSidebar(props: SidebarProps) {
             onChange={(bearing) => act({ kind: 'SET_GEO', patch: { bearing } })}
           />
           <div>
-            <span className="tag">Which way is north</span>
-            <p className="hint">Drag the needle to where true north lies on your drawing.</p>
+            <span className="tag">North</span>
+            <p className="hint">Turn the needle to point where north is on your drawing.</p>
             <p className="hint accent">
-              {Math.round(((space.geo.bearing ?? 0) * 180) / Math.PI)}° off north
+              {Math.round(((space.geo.bearing ?? 0) * 180) / Math.PI)}° from north
             </p>
           </div>
         </div>
       </Panel>
 
       <Panel
-        title="Traced image"
+        title="Background image"
         summary={
           space.base
             ? `${(space.base.calibration.metresPerPixel * space.base.widthPx).toFixed(0)} m across`
@@ -416,8 +416,8 @@ function ShapeStart({
       <span className="tag accent">Draw the outline first</span>
       <p className="hint">
         {corners
-          ? `${corners} corner${corners === 1 ? '' : 's'} down. Click the first one again to close it.`
-          : 'Click corner by corner on the plan, or start from a rectangle.'}
+          ? `${corners} corner${corners === 1 ? '' : 's'} so far. Click the first corner again to close the shape.`
+          : 'Click each corner on the plan, or start from a rectangle.'}
       </p>
       <div className="pair">
         <NumberField label="Wide" value={w} onChange={setW} step={0.1} min={0.5} />
@@ -493,9 +493,9 @@ function SlabSection({ clearance, coverage }: { clearance: number; coverage: num
       <span>
         {clearance.toFixed(1)} m up, over {Math.round(coverage * 100)}% of the floor
         <br />
-        {band === 'low' ? 'A low soffit — deep shade underneath.' : null}
-        {band === 'mid' ? 'A typical balcony soffit.' : null}
-        {band === 'high' ? 'High enough that midday sun still reaches in.' : null}
+        {band === 'low' ? 'Low. A lot of shade under it.' : null}
+        {band === 'mid' ? 'Normal height for a balcony.' : null}
+        {band === 'high' ? 'High. Midday sun still gets in.' : null}
       </span>
     </div>
   );
@@ -529,7 +529,7 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
           },
         },
       });
-      setNotice(`Loaded at a guessed ${span} m across — now drag a line over something you know.`);
+      setNotice(`Loaded. The app guessed ${span} m wide. Draw a line on something you know.`);
       setTool('calibrate');
     } catch (e) {
       setNotice(e instanceof Error ? e.message : 'Could not read that image.');
@@ -545,7 +545,7 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
     const bPx = worldToImagePx(calibrationLine[1], cal);
     const pixels = Math.hypot(bPx.x - aPx.x, bPx.y - aPx.y);
     if (pixels < 1 || !(realLength > 0)) {
-      setNotice('Draw a longer line, or give it a real length.');
+      setNotice('Draw a longer line, or type its real length.');
       return;
     }
     act({
@@ -555,8 +555,8 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
     setCalibrationLine(null);
     setNotice(
       space.boundary.length >= 3
-        ? 'Rescaled. Anything already traced moved with it — check the area still reads right.'
-        : 'Rescaled. Now trace the outline over the image.',
+        ? 'Scale set. Anything you already drew moved with it, so check the area.'
+        : 'Scale set. Now draw the outline on top of the image.',
     );
     setTool('draw');
   };
@@ -576,10 +576,10 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
         patch: { lat: a.lat, lng: a.lng, bearing: bearingFromSimilarity(sim) },
       });
       setCalibrationLine(null);
-      setNotice('Georeferenced. Scale, north and latitude all came from those two points.');
+      setNotice('Done. Scale, north and latitude all came from those two points.');
       setTool('draw');
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : 'Those two points did not work out.');
+      setNotice(e instanceof Error ? e.message : 'Those two points did not work.');
     }
   };
 
@@ -602,7 +602,7 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
             <dt>Scale</dt>
             <dd>{(space.base.calibration.metresPerPixel * 100).toFixed(1)} cm/px</dd>
             <dt>North</dt>
-            <dd>{space.base.georef ? 'from two pinned points' : 'set by hand'}</dd>
+            <dd>{space.base.georef ? 'from coordinates' : 'set by hand'}</dd>
           </dl>
           <div className="row">
             <button aria-pressed={props.tool === 'calibrate'} onClick={() => setTool('calibrate')}>
@@ -615,7 +615,7 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
 
           {calibrationLine ? (
             <div className="newthing">
-              <span className="tag accent">Line drawn — what is it?</span>
+              <span className="tag accent">How long is that line?</span>
               <div className="row">
                 <NumberField
                   label="Long"
@@ -629,7 +629,8 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
                 </button>
               </div>
               <p className="hint">
-                Or pin both ends to real coordinates and get north and latitude too.
+                Or give both ends of the line real coordinates. That sets north and latitude
+                too.
               </p>
               <div className="pair">
                 <NumberField
@@ -671,8 +672,8 @@ function BasePanel(props: SidebarProps & { act: (a: Action) => void }) {
       ) : (
         <>
           <p className="hint">
-            Drop a top-down photo, a satellite screenshot or a site plan here and trace over it. A
-            photo taken at an angle won't measure straight.
+            Drop a photo taken from above, a map screenshot or a plan here, then draw on top
+            of it. A photo taken from the side will not measure correctly.
           </p>
           <div className="row">
             <button onClick={() => fileRef.current?.click()} disabled={busy}>

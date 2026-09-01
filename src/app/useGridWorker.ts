@@ -61,7 +61,7 @@ export function useGridWorker(space: Space | null, cellSize?: number) {
       const { reqId: _reqId, ok: _ok, ...grid } = e.data;
       setResult({ for: space, grid: grid as Grid });
     };
-    const onError = () => setFailure({ for: space, message: 'The sun map worker could not start.' });
+    const onError = () => setFailure({ for: space, message: 'The calculation could not start.' });
 
     worker.addEventListener('message', onMessage);
     worker.addEventListener('error', onError);
