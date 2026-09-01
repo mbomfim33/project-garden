@@ -98,7 +98,7 @@ export function CompassDial({
   return (
     <canvas
       ref={ref}
-      style={{ width: SIZE, height: SIZE, cursor: 'grab', touchAction: 'none' }}
+      className="dial"
       onPointerDown={(e) => {
         dragging.current = true;
         e.currentTarget.setPointerCapture(e.pointerId);

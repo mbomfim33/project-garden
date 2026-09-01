@@ -6,10 +6,12 @@ import {
   solveSimilarity,
   worldToImagePx,
 } from '../space/calibration';
+import { bounds, pip, wallHeight } from '../engine';
 import { fileToBaseImage } from '../view/baseImage';
 import type { Action, EditorDoc } from './editorReducer';
-import { NEEDS_SHAPE, type Tool } from './tools';
+import { NEEDS_SHAPE, type Tool, overheadOverAll, overheadOverPart } from './tools';
 import { CompassDial } from './CompassDial';
+import { EdgeList } from './EdgeList';
 
 const TOOLS: { key: Tool; label: string; key2: string }[] = [
   { key: 'select', label: 'Select', key2: 'V' },
@@ -31,6 +33,8 @@ type Props = {
   setTool: (t: Tool) => void;
   commit: (a: Action) => void;
   selectedEdge: number;
+  setSelectedEdge: (i: number) => void;
+  setHoveredEdge: (i: number) => void;
   selectedObstacle: number;
   setSelectedObstacle: (i: number) => void;
   boxHeight: number;
@@ -56,7 +60,6 @@ type Props = {
 export function EditorSidebar(props: Props) {
   const { doc, tool, setTool, commit, markDirty } = props;
   const { space } = doc;
-  const edge = space.edges[props.selectedEdge];
   const obstacle = space.obstacles[props.selectedObstacle];
 
   const act = (a: Action) => {
@@ -138,39 +141,51 @@ export function EditorSidebar(props: Props) {
             How high above the floor it sits. On a balcony this is usually the single biggest
             thing blocking the sun.
           </p>
+          {doc.closed ? (
+            <>
+              <p className="hint sage">Drag a rectangle on the plan, or take a preset:</p>
+              <div className="row">
+                <button onClick={() => act({ kind: 'SET_OVERHEAD', overhead: overheadOverAll(space.boundary, props.clearance) })}>
+                  Over all of it
+                </button>
+              </div>
+              <div className="row">
+                {[0.5, 0.66].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() =>
+                      act({
+                        kind: 'SET_OVERHEAD',
+                        overhead: overheadOverPart(
+                          space.boundary,
+                          props.clearance,
+                          f,
+                          openestEdge(space),
+                        ),
+                      })
+                    }
+                  >
+                    Back {Math.round(f * 100)}%
+                  </button>
+                ))}
+              </div>
+              <p className="hint">
+                Back means the part furthest from the most open edge — a soffit that stops short
+                of the rail.
+              </p>
+            </>
+          ) : null}
         </section>
       ) : null}
 
-      {edge ? (
-        <section>
-          <h3>Edge {props.selectedEdge + 1}</h3>
-          <div className="row">
-            <button onClick={() => act({ kind: 'CYCLE_WALL', i: props.selectedEdge })}>
-              {edge.wall === 'full' ? 'Full wall' : edge.wall === 'half' ? 'Half wall' : 'Open'}
-            </button>
-          </div>
-          {edge.wall !== 'none' ? (
-            <NumberField
-              label="Height"
-              value={edge.height}
-              step={0.1}
-              min={0}
-              onChange={(height) => act({ kind: 'SET_EDGE', i: props.selectedEdge, patch: { height } })}
-            />
-          ) : null}
-          <div className="row">
-            {edge.door == null ? (
-              <button onClick={() => act({ kind: 'SET_DOOR', i: props.selectedEdge, t: 0.5 })}>
-                Add a door
-              </button>
-            ) : (
-              <button onClick={() => act({ kind: 'SET_DOOR', i: props.selectedEdge, t: null })}>
-                Remove door
-              </button>
-            )}
-          </div>
-          <p className="hint">A half wall counts as half its height when shade is worked out.</p>
-        </section>
+      {doc.closed ? (
+        <EdgeList
+          space={space}
+          selected={props.selectedEdge}
+          onSelect={props.setSelectedEdge}
+          onHover={props.setHoveredEdge}
+          act={act}
+        />
       ) : null}
 
       {obstacle ? (
@@ -211,6 +226,7 @@ export function EditorSidebar(props: Props) {
       {space.overhead ? (
         <section>
           <h3>Overhead</h3>
+          <SlabSection clearance={space.overhead.height} coverage={slabCoverage(space)} />
           <NumberField
             label="Clearance"
             value={space.overhead.height}
@@ -221,10 +237,20 @@ export function EditorSidebar(props: Props) {
             }
           />
           <div className="row">
+            <button
+              aria-pressed={props.tool === 'overhead'}
+              onClick={() => setTool('overhead')}
+            >
+              Redraw it
+            </button>
             <button className="danger" onClick={() => act({ kind: 'SET_OVERHEAD', overhead: undefined })}>
-              Remove slab
+              Remove
             </button>
           </div>
+          <p className="hint">
+            Shown on the plan as the hatched blue outline. It blocks high sun and lets low sun in
+            underneath, so it matters most in summer.
+          </p>
         </section>
       ) : null}
 
@@ -250,7 +276,7 @@ export function EditorSidebar(props: Props) {
           Latitude decides how high the sun climbs and how far the seasons swing. Negative is
           south.
         </p>
-        <div className="row" style={{ alignItems: 'flex-start' }}>
+        <div className="row top">
           <CompassDial
             bearing={space.geo.bearing ?? 0}
             onChange={(bearing) => act({ kind: 'SET_GEO', patch: { bearing } })}
@@ -488,6 +514,68 @@ function BasePanel(props: Props) {
         }}
       />
     </section>
+  );
+}
+
+/** The longest open edge, which is the side a soffit usually stops short of. */
+function openestEdge(space: Space): number {
+  let best = 0;
+  let bestLen = -1;
+  const n = space.boundary.length;
+  for (let i = 0; i < n; i++) {
+    const e = space.edges[i];
+    if (e && wallHeight(e) > 0) continue;
+    const a = space.boundary[i];
+    const b = space.boundary[(i + 1) % n];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len > bestLen) {
+      bestLen = len;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * How much of the floor sits under the slab. Sampled rather than clipped: an
+ * exact polygon intersection is a lot of code for a number we show to the
+ * nearest per cent.
+ */
+function slabCoverage(space: Space): number {
+  const slab = space.overhead;
+  if (!slab || space.boundary.length < 3) return 0;
+  const b = bounds(space.boundary);
+  const step = Math.max((b.maxX - b.minX) / 60, 0.02);
+  let inside = 0;
+  let under = 0;
+  for (let x = b.minX; x <= b.maxX; x += step) {
+    for (let y = b.minY; y <= b.maxY; y += step) {
+      if (!pip(x, y, space.boundary)) continue;
+      inside++;
+      if (pip(x, y, slab.footprint)) under++;
+    }
+  }
+  return inside ? under / inside : 0;
+}
+
+/** A side-on sketch of the floor and the slab above it. */
+function SlabSection({ clearance, coverage }: { clearance: number; coverage: number }) {
+  const band = clearance < 2.2 ? 'low' : clearance < 3 ? 'mid' : 'high';
+  return (
+    <div className="slab">
+      <span className="section" aria-hidden>
+        <i className={`roof ${band}`} />
+        <i className={`gap ${band}`} />
+        <i className="ground" />
+      </span>
+      <span>
+        {clearance.toFixed(1)} m up, over {Math.round(coverage * 100)}% of the floor
+        <br />
+        {band === 'low' ? 'A low soffit — expect deep shade underneath.' : null}
+        {band === 'mid' ? 'A typical balcony soffit.' : null}
+        {band === 'high' ? 'High enough that midday sun still reaches in.' : null}
+      </span>
+    </div>
   );
 }
 

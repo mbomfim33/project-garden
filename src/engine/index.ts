@@ -27,9 +27,11 @@ export {
 } from './solar';
 
 export {
+  edgeSpan,
   maskOf,
   occludersOf,
   shadowOf,
+  wallHeight,
   type Occluder,
   type ShadowMask,
 } from './occluders';

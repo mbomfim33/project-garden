@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { clockLabel, compassPoint, daylight, seasonsFor, sunAlongDay, sunAt } from './solar';
 import { buildGridSeries, cellAt, cellHourly, indexAt, summarise } from './grid';
-import { occludersOf, shadowOf } from './occluders';
+import { edgeSpan, occludersOf, shadowOf, wallHeight } from './occluders';
+import { microclimate } from './microclimate';
 import { isCCW, signedArea } from './geom';
 import { balconySeed, gardenSeed, landSeed } from '../space/seeds';
 import type { Space } from '../space/types';
@@ -129,6 +130,75 @@ describe('shadowOf', () => {
     expect(poly).toHaveLength(4);
     expect(Math.abs(signedArea(poly))).toBeCloseTo(1, 6);
     expect(Math.max(...poly.map((p) => p.y))).toBeCloseTo(1 - 3, 6);
+  });
+});
+
+describe('wall height and run', () => {
+  it('stands a half wall at half its height', () => {
+    expect(wallHeight({ wall: 'full', height: 2 })).toBe(2);
+    expect(wallHeight({ wall: 'half', height: 2 })).toBe(1);
+    expect(wallHeight({ wall: 'none', height: 2 })).toBe(0);
+  });
+
+  it('covers the whole edge unless told otherwise', () => {
+    expect(edgeSpan({ wall: 'full', height: 2 })).toEqual({ from: 0, to: 1 });
+  });
+
+  it('clamps and orders a run given backwards', () => {
+    expect(edgeSpan({ wall: 'full', height: 2, span: { from: 0.8, to: 0.2 } })).toEqual({
+      from: 0.2,
+      to: 0.8,
+    });
+    expect(edgeSpan({ wall: 'full', height: 2, span: { from: -1, to: 5 } })).toEqual({
+      from: 0,
+      to: 1,
+    });
+  });
+
+  it('extrudes only the stretch the wall covers', () => {
+    const space = balconySeed();
+    const full = occludersOf(space).find((o) => o.edge === 0)!;
+
+    space.edges[0] = { ...space.edges[0], span: { from: 0.25, to: 0.75 } };
+    const part = occludersOf(space).find((o) => o.edge === 0)!;
+
+    const run = (o: typeof full) => Math.hypot(
+      o.footprint[1].x - o.footprint[0].x,
+      o.footprint[1].y - o.footprint[0].y,
+    );
+    expect(run(full)).toBeCloseTo(4, 6);
+    expect(run(part)).toBeCloseTo(2, 6);
+    expect(part.height).toBe(full.height);
+  });
+
+  it('drops a wall whose run has been closed to nothing', () => {
+    const space = balconySeed();
+    space.edges[0] = { ...space.edges[0], span: { from: 0.5, to: 0.5 } };
+    expect(occludersOf(space).some((o) => o.edge === 0)).toBe(false);
+  });
+
+  it('lets more light in when a wall stops short', () => {
+    const walled = { ...balconySeed(), geo: { lat: 51.5, bearing: Math.PI } };
+    const gappy: Space = {
+      ...walled,
+      edges: walled.edges.map((e) =>
+        e.wall === 'none' ? e : { ...e, span: { from: 0, to: 0.4 } },
+      ),
+    };
+    expect(meanSummerHours(gappy)).toBeGreaterThan(meanSummerHours(walled));
+  });
+
+  it('shelters only beside the part that is actually built', () => {
+    const space = balconySeed();
+    space.edges[0] = { wall: 'full', height: 3, span: { from: 0, to: 0.25 } };
+    space.edges[1] = { wall: 'none', height: 0 };
+    space.edges[3] = { wall: 'none', height: 0 };
+
+    // Just inside the built quarter, versus the same distance from the bare part.
+    const behindWall = microclimate({ x: 0.5, y: 0.4 }, space);
+    const beyondIt = microclimate({ x: 3.5, y: 0.4 }, space);
+    expect(behindWall.nearWall).toBeGreaterThan(beyondIt.nearWall);
+    expect(beyondIt.wind).toBeGreaterThan(behindWall.wind);
   });
 });
 

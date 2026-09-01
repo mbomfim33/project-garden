@@ -378,3 +378,182 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
   .workspace { grid-template-columns: 1fr; }
   .sidebar { border-right: none; border-bottom: 1px solid var(--line); max-height: 46vh; }
 }
+
+/* ── replacements for inline styles (keeps the CSP strict) ── */
+
+.dot.lit { background: #f2b84b; }
+.dot.unlit { background: #2c3550; }
+.thumb.clickable { cursor: pointer; }
+.dial { width: 96px; height: 96px; cursor: grab; touch-action: none; }
+.editor-footer { grid-column: 1 / -1; }
+.readout .spacer { flex: 1; }
+.row.top { align-items: flex-start; }
+
+/* ── edge list ──────────────────────────────────────────── */
+
+.edgelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+
+.edgelist li {
+  display: grid;
+  grid-template-columns: 14px 20px 1fr auto auto 12px;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.edgelist li:hover { background: rgba(255, 255, 255, 0.04); }
+.edgelist li.on { border-color: var(--accent); background: rgba(233, 162, 58, 0.09); }
+.edgelist .n { color: var(--text); text-align: right; }
+.edgelist .len { color: var(--text-dim); }
+.edgelist .h { color: var(--text); }
+.edgelist .door { text-align: center; color: var(--line); }
+.edgelist .door.on { color: var(--shade); }
+
+/* A stub elevation, so the wall heights are comparable at a glance. */
+.edgelist .bar {
+  position: relative;
+  display: block;
+  height: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.edgelist .bar .fill {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 0;
+  display: block;
+  background: var(--sage);
+}
+.edgelist .bar.half .fill {
+  background: repeating-linear-gradient(0deg, var(--sage) 0 1px, transparent 1px 3px);
+  border-left: 1px solid var(--sage);
+  border-right: 1px solid var(--sage);
+}
+.edgelist .bar.none .fill { background: none; border-bottom: 1px dotted var(--text-dim); }
+
+.edgelist .fill.h0 { height: 0; }
+.edgelist .fill.h10 { height: 10%; }
+.edgelist .fill.h20 { height: 20%; }
+.edgelist .fill.h30 { height: 30%; }
+.edgelist .fill.h40 { height: 40%; }
+.edgelist .fill.h50 { height: 50%; }
+.edgelist .fill.h60 { height: 60%; }
+.edgelist .fill.h70 { height: 70%; }
+.edgelist .fill.h80 { height: 80%; }
+.edgelist .fill.h90 { height: 90%; }
+.edgelist .fill.h100 { height: 100%; }
+
+.edgelist button.state {
+  padding: 3px 7px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  border-radius: 2px;
+  justify-self: start;
+}
+.edgelist button.state.full { background: var(--sage); color: #1b2015; border-color: var(--sage); font-weight: 600; }
+.edgelist button.state.half {
+  background: repeating-linear-gradient(45deg, rgba(147, 167, 126, 0.85) 0 3px, rgba(42, 37, 25, 0.85) 3px 6px);
+  color: var(--text);
+  border-color: var(--sage);
+}
+.edgelist button.state.none { background: transparent; color: var(--text-dim); border-style: dashed; }
+
+/* ── overhead panel ─────────────────────────────────────── */
+
+.slab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--shade);
+  border-radius: var(--r);
+  background: rgba(110, 134, 184, 0.1);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+.slab .section { position: relative; width: 52px; height: 34px; flex: 0 0 auto; }
+.slab .section .ground { position: absolute; left: 0; right: 0; bottom: 0; border-bottom: 2px solid var(--sage); }
+.slab .section .roof { position: absolute; left: 6px; right: 6px; border-top: 2px dashed var(--shade); }
+.slab .section .gap { position: absolute; left: 50%; border-left: 1px dotted var(--text-dim); bottom: 2px; }
+.slab .section .roof.low { top: 60%; }
+.slab .section .roof.mid { top: 35%; }
+.slab .section .roof.high { top: 12%; }
+.slab .section .gap.low { top: 40%; }
+.slab .section .gap.mid { top: 65%; }
+.slab .section .gap.high { top: 88%; }
+
+/* ── the three wall marks, spelled out ──────────────────── */
+
+.wallkey { display: flex; flex-direction: column; gap: 5px; }
+.wallkey div { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+.wallkey .mark { width: 34px; height: 9px; flex: 0 0 auto; }
+.wallkey .mark.full { background: var(--sage); border: 1px solid #6f8259; }
+.wallkey .mark.half {
+  border: 1px solid rgba(147, 167, 126, 0.75);
+  background:
+    repeating-linear-gradient(90deg, rgba(147, 167, 126, 0.9) 0 1px, transparent 1px 7px),
+    linear-gradient(0deg, rgba(147, 167, 126, 0.85) 0 50%, transparent 50% 100%);
+}
+.wallkey .mark.none { border-top: 1px dotted var(--text-dim); height: 1px; align-self: center; }
+
+/* ── edge rows open in place ─────────────────────────────── */
+
+.edgelist li { display: block; padding: 0; }
+.edgelist li > button.row {
+  display: grid;
+  grid-template-columns: 14px 20px auto 1fr auto 12px;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  border-radius: var(--r);
+  background: transparent;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-align: left;
+}
+.edgelist li > button.row:hover { background: rgba(255, 255, 255, 0.05); border-color: transparent; }
+.edgelist li.on > button.row { background: rgba(233, 162, 58, 0.1); }
+
+.edgelist .state {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+}
+.edgelist .state.full { background: var(--sage); color: #1b2015; border-color: var(--sage); font-weight: 600; }
+.edgelist .state.half {
+  background: rgba(147, 167, 126, 0.22);
+  border-color: var(--sage);
+  color: #cadab4;
+}
+.edgelist .state.none { background: transparent; border-style: dotted; color: var(--text-dim); }
+
+.edgelist .detail {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 7px 10px;
+  border-top: 1px dashed var(--line);
+}
+.edgelist .detail .field input { width: 66px; }
+.edgelist .detail .seg { align-self: start; }
+.edgelist .detail .hint { margin: 0; }
+
+.overlay.loud {
+  color: var(--text);
+  background: rgba(15, 13, 9, 0.86);
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  padding: 6px 10px;
+  right: auto;
+}

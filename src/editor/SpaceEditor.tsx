@@ -11,7 +11,7 @@ import { useEditor } from './useEditor';
 import { type EditorDoc, projectToEdge } from './editorReducer';
 import { type Snap, snap } from './snap';
 import { type EditorScene, drawEditor } from './editorDraw';
-import { NEEDS_SHAPE, type Tool, TOOL_HINT, makeBox, makeOverhead, makeTree } from './tools';
+import { NEEDS_SHAPE, type Tool, TOOL_HINT, atLeast, makeBox, makeOverhead, makeTree } from './tools';
 import { EditorSidebar } from './EditorSidebar';
 
 /** Movement under this, on a corner, counts as a tap rather than a drag. */
@@ -37,6 +37,7 @@ export function SpaceEditor({ space }: { space: Space }) {
   const [tool, setTool] = useState<Tool>(space.boundary.length >= 3 ? 'select' : 'draw');
   const [selectedVertex, setSelectedVertex] = useState(-1);
   const [selectedEdge, setSelectedEdge] = useState(-1);
+  const [hoveredEdge, setHoveredEdge] = useState(-1);
   const [selectedObstacle, setSelectedObstacle] = useState(-1);
   const [boxHeight, setBoxHeight] = useState(2.5);
   const [treeRadius, setTreeRadius] = useState(1.5);
@@ -72,6 +73,7 @@ export function SpaceEditor({ space }: { space: Space }) {
       selectedVertex,
       selectedEdge,
       selectedObstacle,
+      hoveredEdge,
       calibrationLine,
       pendingRect,
     };
@@ -86,6 +88,7 @@ export function SpaceEditor({ space }: { space: Space }) {
     selectedVertex,
     selectedEdge,
     selectedObstacle,
+    hoveredEdge,
     calibrationLine,
     pendingRect,
   ]);
@@ -338,17 +341,20 @@ export function SpaceEditor({ space }: { space: Space }) {
 
     if (drag.kind === 'rect') {
       setPendingRect(null);
-      const w = Math.abs(drag.current.x - drag.start.x);
-      const h = Math.abs(drag.current.y - drag.start.y);
-      if (w < 0.15 || h < 0.15) {
-        setNotice('That rectangle was too small to keep.');
+      const moved = Math.hypot(drag.current.x - drag.start.x, drag.current.y - drag.start.y);
+      if (moved < 0.05) {
+        setNotice('Drag out a rectangle — a single click has nothing to cover.');
         return;
       }
+      // Dragging along an edge is a natural gesture and leaves a rectangle with
+      // no depth. Give it some rather than throwing the gesture away.
+      const [p0, p1] = atLeast(drag.start, drag.current);
       if (tool === 'overhead') {
-        commit({ kind: 'SET_OVERHEAD', overhead: makeOverhead(drag.start, drag.current, clearance) });
+        commit({ kind: 'SET_OVERHEAD', overhead: makeOverhead(p0, p1, clearance) });
         setTool('select');
+        setNotice(`Slab added, ${clearance.toFixed(1)} m above the floor.`);
       } else {
-        commit({ kind: 'ADD_OBSTACLE', obstacle: makeBox(drag.start, drag.current, boxHeight) });
+        commit({ kind: 'ADD_OBSTACLE', obstacle: makeBox(p0, p1, boxHeight) });
         setSelectedObstacle(doc.space.obstacles.length);
       }
       setDirty(true);
@@ -429,6 +435,8 @@ export function SpaceEditor({ space }: { space: Space }) {
         setTool={setTool}
         commit={commit}
         selectedEdge={selectedEdge}
+        setSelectedEdge={setSelectedEdge}
+        setHoveredEdge={setHoveredEdge}
         selectedObstacle={selectedObstacle}
         setSelectedObstacle={setSelectedObstacle}
         boxHeight={boxHeight}
@@ -481,10 +489,12 @@ export function SpaceEditor({ space }: { space: Space }) {
           onContextMenu={(e) => e.preventDefault()}
           aria-label={`Plan of ${doc.space.name}`}
         />
-        <div className="overlay">{TOOL_HINT[tool]} · shift-drag to pan, scroll to zoom</div>
+        <div className={notice ? 'overlay loud' : 'overlay'}>
+          {notice ?? `${TOOL_HINT[tool]} · shift-drag to pan, scroll to zoom`}
+        </div>
       </div>
 
-      <div className="readout" style={{ gridColumn: '1 / -1' }}>
+      <div className="readout editor-footer">
         <span>
           <span className="k">area</span>{' '}
           <b>{shapeReady ? `${area(boundary).toFixed(1)} m²` : 'not closed yet'}</b>
@@ -498,7 +508,7 @@ export function SpaceEditor({ space }: { space: Space }) {
         <span>
           <span className="k">overhead</span> <b>{doc.space.overhead ? 'yes' : 'none'}</b>
         </span>
-        <span className="spacer" style={{ flex: 1 }} />
+        <span className="spacer" />
         <span>
           <button onClick={save} disabled={!dirty}>
             {dirty ? 'Save' : 'Saved'}

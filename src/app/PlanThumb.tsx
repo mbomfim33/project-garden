@@ -30,10 +30,9 @@ export function PlanThumb({ space, onClick }: { space: Space; onClick?: () => vo
 
   return (
     <canvas
-      className="thumb"
+      className={onClick ? 'thumb clickable' : 'thumb'}
       ref={ref}
       onClick={onClick}
-      style={{ height: HEIGHT, cursor: onClick ? 'pointer' : 'default' }}
       aria-hidden
     />
   );

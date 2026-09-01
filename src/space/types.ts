@@ -11,8 +11,14 @@ export type SpaceType = 'balcony' | 'garden' | 'land';
 /** One boundary segment: edges[i] runs boundary[i] -> boundary[i+1]. */
 export type Edge = {
   wall: 'full' | 'half' | 'none';
-  /** Metres. Only meaningful when wall !== 'none'. */
+  /** How tall the wall stands, in metres. A 'half' wall reaches half of it. */
   height: number;
+  /**
+   * How far along the edge the wall actually runs, as fractions of the edge
+   * from its first corner. Absent means the whole edge. Stored as fractions,
+   * not metres, so it survives the corner being dragged.
+   */
+  span?: { from: number; to: number };
   /** 0..1 along the edge, if there's a door or gate on it. */
   door?: number;
 };

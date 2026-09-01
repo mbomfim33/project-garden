@@ -165,11 +165,11 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
         {live ? (
           <>
             <span>
-              <span className="dot" style={{ background: '#f2b84b' }} />
+              <span className="dot lit" />
               sun reaches it now
             </span>
             <span>
-              <span className="dot" style={{ background: '#2c3550' }} />
+              <span className="dot unlit" />
               in shadow now
             </span>
           </>
