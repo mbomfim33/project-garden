@@ -2,8 +2,7 @@
 
 Draw a space. The app works out how many hours of sun each part of it gets.
 
-I built this to answer one question about my own balcony, so it is a personal
-tool, not a product. It runs in the browser, keeps everything in your own
+I was curious about my own balcony so decided to figure out how many sun-hours each square meter had. All private, keeps everything in your own
 browser storage, and has no accounts and no server.
 
 <table>
@@ -116,36 +115,6 @@ read one back.
 
 Browser storage is about 5 MB in total, and a background image is large, so
 images are shrunk to 1600 px on the long side before saving.
-
-## Making the pictures above
-
-Record with **Cmd-Shift-5**, then convert. Recordings are not committed — only
-the GIFs are.
-
-```bash
-scripts/mov-to-gif.sh balcony.mov docs/media/balcony.gif 620 12
-scripts/mov-to-gif.sh garden.mov  docs/media/garden.gif  620 10 1.4
-scripts/mov-to-gif.sh tracing-image.mov docs/media/tracing.gif 860 10 3.5
-```
-
-The arguments after the filenames are width in pixels, frames per second, and
-speed. Speed 3.5 plays a 76-second clip in 22 seconds, which is how a long
-recording stays small enough to sit in a README.
-
-The script runs ffmpeg twice: once to pick the best 256 colours for that clip,
-once to write the GIF with them. One pass looks banded on a dark background. It
-also drops all metadata, because a macOS recording carries a creation timestamp
-and the recorder's name.
-
-What keeps the files small:
-
-- The three at the top are only 620 px wide, because they are shown three across
-  and get scaled down anyway. The full-width ones are 860–900 px.
-- 10 to 12 frames per second is enough. The shadow animation is slow on purpose.
-- Speed up anything over about 20 seconds rather than cutting the width further.
-- Record just the browser window, not the whole screen.
-
-Everything above adds up to about 8 MB.
 
 ## Security notes
 
