@@ -44,16 +44,27 @@ body::before {
     radial-gradient(820px 640px at 6% 110%, rgba(110, 134, 184, 0.06), transparent 60%);
 }
 
-#root { position: relative; z-index: 1; display: flex; flex-direction: column; }
+#root { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── shell ──────────────────────────────────────────────── */
 
 .shell {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+}
+
+/* The one scroll container for a route. Everything inside can then bound its
+   own height, which is what lets the inspector scroll on its own. */
+.main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 .topbar {
@@ -171,7 +182,7 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
 
 /* ── gallery ────────────────────────────────────────────── */
 
-.gallery { max-width: 980px; margin: 0 auto; padding: 44px 22px 80px; width: 100%; }
+.gallery { max-width: 980px; margin: 0 auto; padding: 40px 22px 80px; width: 100%; }
 .gallery .eyebrow {
   font-family: var(--mono);
   font-size: 11.5px;
@@ -233,9 +244,12 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
 
 .workspace {
   flex: 1;
-  display: grid;
-  grid-template-columns: 268px minmax(0, 1fr);
   min-height: 0;
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  /* The first row takes what's left and is allowed to shrink, so the sidebar
+     and the canvas each scroll or shrink instead of pushing the footer away. */
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .sidebar {
@@ -247,6 +261,10 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
   flex-direction: column;
   gap: 10px;
 }
+
+/* Cards keep their own height and the column scrolls. Without this they are
+   flex children that shrink to fit, which squashes the text instead. */
+.sidebar > * { flex: 0 0 auto; }
 
 .sidebar .hint {
   font-family: var(--mono);
@@ -421,11 +439,13 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
 
 .stage {
   position: relative;
+  flex: 1;
   min-width: 0;
-  min-height: 0;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
   background: #0f0d09;
+  overflow: hidden;
 }
 
 .stage canvas.plan {
@@ -446,6 +466,11 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
   pointer-events: none;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
+
+.readout,
+.controls,
+.legend,
+.data-panel { flex: none; }
 
 .readout {
   display: flex;
@@ -532,8 +557,15 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
 .pending { padding: 40px 22px; font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
 
 @media (max-width: 760px) {
-  .workspace { grid-template-columns: 1fr; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--line); max-height: 46vh; }
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(260px, 1fr) auto;
+  }
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    max-height: 45vh;
+  }
 }
 
 /* ── replacements for inline styles (keeps the CSP strict) ── */
