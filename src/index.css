@@ -240,27 +240,184 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
 
 .sidebar {
   border-right: 1px solid var(--line);
-  background: var(--panel);
-  padding: 16px 15px 30px;
+  background: var(--ground-2);
+  padding: 12px 12px 40px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
 }
 
-.sidebar section { display: flex; flex-direction: column; gap: 9px; }
-.sidebar h3 {
-  margin: 0;
+.sidebar .hint {
   font-family: var(--mono);
   font-size: 10.5px;
-  letter-spacing: 0.18em;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0;
+}
+.sidebar .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sidebar .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sidebar .pair .field { flex-direction: column; align-items: flex-start; gap: 3px; }
+.sidebar .pair .field input { width: 100%; }
+
+/* ── inspector cards ────────────────────────────────────── */
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--panel);
+  overflow: hidden;
+}
+.panel.open { border-color: #4a4436; }
+
+.panel .phead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 11px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+.panel .phead:hover { background: rgba(255, 255, 255, 0.03); border-color: transparent; }
+.panel.open .phead { border-bottom: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); }
+
+.panel .caret { color: var(--text-dim); font-size: 9px; width: 9px; }
+.panel .ptitle {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sage);
 }
-.sidebar .hint { font-family: var(--mono); font-size: 10.5px; line-height: 1.55; color: var(--text-dim); margin: 0; }
-.sidebar .toolgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.sidebar .toolgrid button { padding: 8px 6px; text-align: center; }
-.sidebar .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.panel .psum {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: right;
+}
+.panel.open .psum { color: var(--text); }
+
+.panel .pbody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 11px 13px;
+}
+
+/* ── a labelled fact table, for things you read rather than set ── */
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+.facts dt { color: var(--text-dim); }
+.facts dd { margin: 0; color: var(--text); text-align: right; }
+
+.tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.tag.accent { color: var(--accent); }
+
+.field.stack { flex-direction: column; align-items: stretch; gap: 4px; }
+.field.stack input { width: 100%; }
+
+/* A boxed sub-form, for what you are about to place. */
+.newthing {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px dashed #4a4436;
+  border-radius: var(--r);
+  background: rgba(233, 162, 58, 0.05);
+}
+
+.starter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  background: rgba(233, 162, 58, 0.08);
+}
+
+.northrow { display: flex; gap: 11px; align-items: flex-start; }
+.northrow > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+/* ── tool rail over the drawing ─────────────────────────── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.toolbar .tgroup { display: flex; align-items: center; gap: 8px; }
+.toolbar .tlabel {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.toolbar .tspacer { flex: 1; }
+.toolbar .seg button { padding: 6px 11px; }
+
+/* ── things-in-it list ──────────────────────────────────── */
+
+.objlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.objlist li { border: 1px solid transparent; border-radius: var(--r); }
+.objlist li.on { border-color: var(--accent); background: rgba(233, 162, 58, 0.08); }
+.objlist li > button.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 7px;
+  border: none;
+  background: transparent;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-align: left;
+}
+.objlist li > button.row:hover { background: rgba(255, 255, 255, 0.05); border-color: transparent; }
+.objlist .name { color: var(--text); }
+.objlist .h { color: var(--text); }
+.objlist .chip {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+.objlist .chip.solid { border-color: var(--sage); color: var(--sage); }
+.objlist .chip.canopy { border-color: #4e764e; color: #7fae7f; }
+.objlist .detail {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 7px 10px;
+  border-top: 1px dashed var(--line);
+}
+.objlist .detail .field input { width: 66px; }
+.objlist .detail .seg { align-self: start; }
 
 .stage {
   position: relative;
@@ -556,4 +713,22 @@ input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-dim)
   border-radius: var(--r);
   padding: 6px 10px;
   right: auto;
+}
+
+/* ── keep the edge rows on one line ─────────────────────── */
+
+.edgelist li > button.row { gap: 6px; }
+.edgelist .len,
+.edgelist .h,
+.edgelist .n { white-space: nowrap; }
+.edgelist .len { font-size: 10px; }
+
+.keybox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: rgba(0, 0, 0, 0.2);
 }

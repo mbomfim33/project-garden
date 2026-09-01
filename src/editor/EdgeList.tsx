@@ -46,8 +46,7 @@ export function EdgeList({
   if (n < 3) return null;
 
   return (
-    <section>
-      <h3>Edges</h3>
+    <>
       <ul className="edgelist" ref={listRef} onPointerLeave={() => onHover(-1)}>
         {space.edges.slice(0, n).map((e, i) => {
           const a = space.boundary[i];
@@ -193,25 +192,24 @@ export function EdgeList({
         })}
       </ul>
 
-      <div className="wallkey">
-        <div>
-          <span className="mark full" aria-hidden />
-          Wall — stands its full height
-        </div>
-        <div>
-          <span className="mark half" aria-hidden />
-          Half — stands half as tall, like a rail or a parapet
-        </div>
-        <div>
-          <span className="mark none" aria-hidden />
-          Open — nothing built along it
+      <div className="keybox">
+        <span className="tag">What the marks mean</span>
+        <div className="wallkey">
+          <div>
+            <span className="mark full" aria-hidden />
+            Full height
+          </div>
+          <div>
+            <span className="mark half" aria-hidden />
+            Half as tall — a rail or parapet
+          </div>
+          <div>
+            <span className="mark none" aria-hidden />
+            Nothing built along it
+          </div>
         </div>
       </div>
-      <p className="hint">
-        Tall is how high the wall stands. Runs is how far along the edge it goes — set it shorter
-        and the rest of the edge lets light through.
-      </p>
       <p className="hint">Pick a row to edit it. Hover one to find it on the plan.</p>
-    </section>
+    </>
   );
 }

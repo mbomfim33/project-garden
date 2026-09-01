@@ -13,6 +13,7 @@ import { type Snap, snap } from './snap';
 import { type EditorScene, drawEditor } from './editorDraw';
 import { NEEDS_SHAPE, type Tool, TOOL_HINT, atLeast, makeBox, makeOverhead, makeTree } from './tools';
 import { EditorSidebar } from './EditorSidebar';
+import { EditorToolbar } from './EditorToolbar';
 
 /** Movement under this, on a corner, counts as a tap rather than a drag. */
 const TAP_PX = 4;
@@ -452,25 +453,40 @@ export function SpaceEditor({ space }: { space: Space }) {
         notice={notice ?? storeError}
         setNotice={setNotice}
         markDirty={() => setDirty(true)}
-        undo={() => {
-          undo();
+        seedRect={(w, h) => {
+          commit({ kind: 'SEED_RECT', w, h, walled: doc.space.type === 'balcony' });
+          setTool('select');
           setDirty(true);
         }}
-        redo={() => {
-          redo();
+        closeShape={() => {
+          commit({ kind: 'CLOSE' });
+          setTool('select');
           setDirty(true);
-        }}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        fitView={() => {
-          if (!width || !height) return;
-          vp.reset();
-          vp.refit(doc.space, width, height);
-          requestDraw();
         }}
       />
 
       <div className="stage">
+        <EditorToolbar
+          tool={tool}
+          setTool={setTool}
+          closed={doc.closed}
+          undo={() => {
+            undo();
+            setDirty(true);
+          }}
+          redo={() => {
+            redo();
+            setDirty(true);
+          }}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          fitView={() => {
+            if (!width || !height) return;
+            vp.reset();
+            vp.refit(doc.space, width, height);
+            requestDraw();
+          }}
+        />
         <canvas
           className="plan"
           ref={(el) => {
