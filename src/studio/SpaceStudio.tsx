@@ -8,9 +8,9 @@ import { DataPanel } from './DataPanel';
 import type { Mode } from './studioDraw';
 
 const MODES: { key: Mode; label: string }[] = [
-  { key: 'live', label: 'Live shadow' },
-  { key: 'summer', label: 'Summer hours' },
-  { key: 'winter', label: 'Winter hours' },
+  { key: 'live', label: 'Shadows now' },
+  { key: 'summer', label: 'Summer total' },
+  { key: 'winter', label: 'Winter total' },
 ];
 
 export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
@@ -28,7 +28,7 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
 
   const seasons = useMemo(() => seasonsFor(space.geo.lat), [space.geo.lat]);
   const season = seasons.find((s) => s.key === seasonKey) ?? seasons[0];
-  const summerLabel = `sunlight through ${seasons[0].label.toLowerCase()}`;
+  const summerLabel = 'sun through the longest day';
 
   const day = useMemo(
     () => daylight(season.day, space.geo.lat * (Math.PI / 180)),
@@ -63,7 +63,7 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
 
       <div className="readout">
         <span>
-          <span className="k">{season.label.toLowerCase()}</span>{' '}
+          <span className="k">{season.key === 'winter' ? 'shortest day' : 'longest day'}</span>{' '}
           <b>
             {clockLabel(day.sunrise)}–{clockLabel(day.sunset)}
           </b>
@@ -77,21 +77,21 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
               <span className="k">sun</span>{' '}
               <b>
                 {sun && sun.altDeg > 0
-                  ? `${Math.round(sun.altDeg)}° up, ${Math.round(sun.azDeg)}° ${compassPoint(sun.azDeg)}`
-                  : 'below the horizon'}
+                  ? `${Math.round(sun.altDeg)}° high, to the ${compassPoint(sun.azDeg)}`
+                  : 'not up yet'}
               </b>
             </span>
           </>
         ) : (
           <span>
             <span className="k">showing</span>{' '}
-            <b>{mode === 'winter' ? 'midwinter' : 'midsummer'} sunlight totals</b>
+            <b>hours of sun on the {mode === 'winter' ? 'shortest' : 'longest'} day</b>
           </span>
         )}
         {space.geo.bearing ? (
           <span>
-            <span className="k">plan turned</span>{' '}
-            <b>{Math.round((space.geo.bearing * 180) / Math.PI)}° off north</b>
+            <span className="k">drawing turned</span>{' '}
+            <b>{Math.round((space.geo.bearing * 180) / Math.PI)}° from north</b>
           </span>
         ) : null}
       </div>
@@ -130,19 +130,19 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
         </div>
 
         <div className="ctl">
-          <span className="mono dim">day</span>
+          <span className="mono dim">day of year</span>
           <div className="seg" role="group" aria-label="Which day of the year">
             <button aria-pressed={seasonKey === 'summer'} onClick={() => setSeasonKey('summer')}>
-              Midsummer
+              Longest day
             </button>
             <button aria-pressed={seasonKey === 'winter'} onClick={() => setSeasonKey('winter')}>
-              Midwinter
+              Shortest day
             </button>
           </div>
         </div>
 
         <div className="ctl grow">
-          <span className="mono dim">overlay</span>
+          <span className="mono dim">colour</span>
           <input
             type="range"
             min={0}
@@ -156,7 +156,7 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
 
         <div className="ctl">
           <Link to={`/editor/${space.id}`}>
-            <button className="ghost">Edit this space</button>
+            <button className="ghost">Edit</button>
           </Link>
         </div>
       </div>
@@ -166,23 +166,23 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
           <>
             <span>
               <span className="dot lit" />
-              sun reaches it now
+              in the sun
             </span>
             <span>
               <span className="dot unlit" />
-              in shadow now
+              in shadow
             </span>
           </>
         ) : (
           <span>
             <span className="ramp" />
-            no sun → {maxHours.toFixed(1)} h
+            0 to {maxHours.toFixed(1)} hours of sun
           </span>
         )}
         <span>
           · {grid.cellSize} m squares · {grid.cols}×{grid.rows}
         </span>
-        {reduced ? <span className="dim">· motion reduced, animation off by default</span> : null}
+        {reduced ? <span className="dim">· animation off, your system asks for less motion</span> : null}
       </div>
 
       <DataPanel space={space} grid={grid} hovered={hovered} summerLabel={summerLabel} />

@@ -3,8 +3,8 @@
 Draw a space. The app works out how many hours of sun each part of it gets.
 
 I built this to answer one question about my own balcony, so it is a personal
-tool, not a product. It runs in the browser, saves nothing anywhere except your
-own browser storage, and has no accounts or server.
+tool, not a product. It runs in the browser, keeps everything in your own
+browser storage, and has no accounts and no server.
 
 ```bash
 npm install
@@ -12,6 +12,35 @@ npm run dev
 ```
 
 Then open the address it prints. Three example spaces are already there.
+
+## A balcony
+
+A small space, walls on three sides, and a roof above part of it. The roof is
+usually the thing that decides the answer, and the thing people forget.
+
+![Drawing a balcony and reading its sun map](docs/media/balcony.gif)
+
+## A garden
+
+Bigger, open on more sides, with a house and a tree in the way. Watch the shade
+move as the day goes by.
+
+![Drawing a garden and reading its sun map](docs/media/garden.gif)
+
+## A plot of land, drawn over a photo
+
+Drop in a photo taken from above or a map screenshot, set the scale by drawing a
+line on something you know the length of, then draw on top of it.
+
+![Tracing a plot of land over a photo](docs/media/land.gif)
+
+## The editor
+
+Tools along the top, and one card per thing you can change down the side. Each
+card says what is in it, so you can see the whole space without opening
+anything.
+
+![The editor](docs/media/editor.png)
 
 ## What you can do
 
@@ -28,10 +57,6 @@ Then open the address it prints. Three example spaces are already there.
 6. **Look at the answer.** Watch the shadows move through the day, or see the
    totals for the longest and the shortest day of the year. Point at any square
    to read its own numbers.
-
-You can also drop in a photo taken from above, or a map screenshot, set the
-scale by drawing a line on something you know the length of, and draw on top of
-it.
 
 ## How the numbers are worked out
 
@@ -72,8 +97,8 @@ So treat the numbers as a good guess, not a survey.
 | `src/app` | Screens, routing, the background worker |
 | `docs` | The design notes this was built from |
 
-The engine is plain functions over plain data, so it is tested without a
-browser and can run in a worker. A lint rule stops it importing React.
+The engine is plain functions over plain data, so it is tested without a browser
+and can run in a worker. A lint rule stops it importing React.
 
 ```bash
 npm test          # the maths and the data model
@@ -90,6 +115,34 @@ read one back.
 Browser storage is about 5 MB in total, and a background image is large, so
 images are shrunk to 1600 px on the long side before saving.
 
+## Making the pictures above
+
+Record with **Cmd-Shift-5** on a Mac, then convert:
+
+```bash
+scripts/mov-to-gif.sh ~/Desktop/recording.mov docs/media/balcony.gif
+scripts/mov-to-gif.sh ~/Desktop/recording.mov docs/media/garden.gif 1000 12
+```
+
+The third and fourth arguments are width in pixels and frames per second, and
+default to `1000` and `12`. It runs ffmpeg twice: once to pick the best 256
+colours for that clip, once to write the GIF with them. One pass looks banded on
+a dark background.
+
+What keeps the files small enough for a README:
+
+- Make the browser window about 1200 px wide before recording. GIF size grows
+  with the square of the width.
+- Keep each clip under about 15 seconds.
+- 12 frames per second is enough. The shadow animation is slow on purpose.
+- Record just the browser window, not the whole screen — hold the pointer over
+  the window and click it in the Cmd-Shift-5 toolbar.
+- If a GIF still comes out over about 5 MB, drop the width to 800 or the rate
+  to 10.
+
+For the still, take it with **Cmd-Shift-4** then space, click the window, and
+save it as `docs/media/editor.png`.
+
 ## Security notes
 
 - Every dependency is pinned to an exact version, and `npm ci` installs only
@@ -97,9 +150,11 @@ images are shrunk to 1600 px on the long side before saving.
 - `.npmrc` sets `ignore-scripts=true`, so no package can run code while
   installing.
 - GitHub Actions are pinned to a commit, not a tag, because a tag can be moved.
-- The built page carries a strict content security policy. It loads nothing
-  from anywhere else, and there is nothing to load. `public/_headers` has the
-  same policy for hosts that can send real headers.
+- The built page carries a strict content security policy. It loads nothing from
+  anywhere else, and there is nothing to load. `public/_headers` has the same
+  policy for hosts that can send real headers.
+
+See `SECURITY.md`.
 
 ## Licence
 
