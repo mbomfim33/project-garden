@@ -6,6 +6,19 @@ I built this to answer one question about my own balcony, so it is a personal
 tool, not a product. It runs in the browser, keeps everything in your own
 browser storage, and has no accounts and no server.
 
+<table>
+  <tr>
+    <td width="33%"><img src="docs/media/balcony.gif" alt="A balcony, drawn and then read as a sun map" width="100%"></td>
+    <td width="33%"><img src="docs/media/garden.gif" alt="A garden with a house and a tree, shadows moving through the day" width="100%"></td>
+    <td width="33%"><img src="docs/media/land.gif" alt="A plot of land traced over a photo" width="100%"></td>
+  </tr>
+  <tr>
+    <td><sub>A balcony. Walls on three sides and a roof over part of it.</sub></td>
+    <td><sub>A garden. A house and a tree get in the way.</sub></td>
+    <td><sub>A plot of land, drawn over a photo.</sub></td>
+  </tr>
+</table>
+
 ```bash
 npm install
 npm run dev
@@ -13,50 +26,39 @@ npm run dev
 
 Then open the address it prints. Three example spaces are already there.
 
-## A balcony
+## You can create your own places
 
-A small space, walls on three sides, and a roof above part of it. The roof is
-usually the thing that decides the answer, and the thing people forget.
+Click each corner, or start from a rectangle. It snaps to other corners, to
+right angles, and to 10 cm. Then say what is around it and what is in it:
 
-![Drawing a balcony and reading its sun map](docs/media/balcony.gif)
+- Each edge is a wall, a half-height wall, or nothing. A wall has a height, and
+  it can run only part of the way along the edge — the rest lets light in.
+- Sheds, walls and raised beds block the ground under them. Trees do not.
+- The roof can be as many pieces as the real roof has, each with its own shape
+  and height. Pieces may overlap and may reach past the walls, the way an eave
+  does.
 
-## A garden
+![Drawing a space from nothing](docs/media/drawing.gif)
 
-Bigger, open on more sides, with a house and a tree in the way. Watch the shade
-move as the day goes by.
+## You can trace an existing image
 
-![Drawing a garden and reading its sun map](docs/media/garden.gif)
+Drop in a photo taken from above, or a screenshot of a map. Draw a line on
+something you know the length of, type that length, and the image is now to
+scale. Everything you draw on top of it is in real metres.
 
-## A plot of land, drawn over a photo
+If you know the coordinates of two points in the picture, you can give it those
+instead. That sets the scale, which way north is, and the latitude, all at once.
 
-Drop in a photo taken from above or a map screenshot, set the scale by drawing a
-line on something you know the length of, then draw on top of it.
+![Tracing a plot over a satellite image](docs/media/tracing.gif)
 
-![Tracing a plot of land over a photo](docs/media/land.gif)
+## You can get details on the sun
 
-## The editor
+Watch the shadows move through the day, or see the totals for the longest and
+the shortest day of the year. Point at any square to get that square on its own:
+hours of sun in summer and in winter, when during the day the sun reaches it,
+how sheltered it is, and how near a door it is.
 
-Tools along the top, and one card per thing you can change down the side. Each
-card says what is in it, so you can see the whole space without opening
-anything.
-
-![The editor](docs/media/editor.png)
-
-## What you can do
-
-1. **Draw the outline.** Click each corner, or start from a rectangle. It snaps
-   to other corners, to right angles, and to 10 cm.
-2. **Say what is around it.** Each edge can be a wall, a half-height wall or
-   nothing. A wall has a height, and it can run only part of the way along the
-   edge — the rest lets light in.
-3. **Add what is inside it.** Sheds, walls, raised beds, trees. A shed blocks
-   the ground under it; a tree does not.
-4. **Add the roof.** As many pieces as the real roof has, each with its own
-   shape and height. Pieces may overlap and may reach past the walls.
-5. **Say where you are.** Latitude, and which way north is on your drawing.
-6. **Look at the answer.** Watch the shadows move through the day, or see the
-   totals for the longest and the shortest day of the year. Point at any square
-   to read its own numbers.
+![Reading one square's day](docs/media/sun-detail.gif)
 
 ## How the numbers are worked out
 
@@ -117,31 +119,33 @@ images are shrunk to 1600 px on the long side before saving.
 
 ## Making the pictures above
 
-Record with **Cmd-Shift-5** on a Mac, then convert:
+Record with **Cmd-Shift-5**, then convert. Recordings are not committed — only
+the GIFs are.
 
 ```bash
-scripts/mov-to-gif.sh ~/Desktop/recording.mov docs/media/balcony.gif
-scripts/mov-to-gif.sh ~/Desktop/recording.mov docs/media/garden.gif 1000 12
+scripts/mov-to-gif.sh balcony.mov docs/media/balcony.gif 620 12
+scripts/mov-to-gif.sh garden.mov  docs/media/garden.gif  620 10 1.4
+scripts/mov-to-gif.sh tracing-image.mov docs/media/tracing.gif 860 10 3.5
 ```
 
-The third and fourth arguments are width in pixels and frames per second, and
-default to `1000` and `12`. It runs ffmpeg twice: once to pick the best 256
-colours for that clip, once to write the GIF with them. One pass looks banded on
-a dark background.
+The arguments after the filenames are width in pixels, frames per second, and
+speed. Speed 3.5 plays a 76-second clip in 22 seconds, which is how a long
+recording stays small enough to sit in a README.
 
-What keeps the files small enough for a README:
+The script runs ffmpeg twice: once to pick the best 256 colours for that clip,
+once to write the GIF with them. One pass looks banded on a dark background. It
+also drops all metadata, because a macOS recording carries a creation timestamp
+and the recorder's name.
 
-- Make the browser window about 1200 px wide before recording. GIF size grows
-  with the square of the width.
-- Keep each clip under about 15 seconds.
-- 12 frames per second is enough. The shadow animation is slow on purpose.
-- Record just the browser window, not the whole screen — hold the pointer over
-  the window and click it in the Cmd-Shift-5 toolbar.
-- If a GIF still comes out over about 5 MB, drop the width to 800 or the rate
-  to 10.
+What keeps the files small:
 
-For the still, take it with **Cmd-Shift-4** then space, click the window, and
-save it as `docs/media/editor.png`.
+- The three at the top are only 620 px wide, because they are shown three across
+  and get scaled down anyway. The full-width ones are 860–900 px.
+- 10 to 12 frames per second is enough. The shadow animation is slow on purpose.
+- Speed up anything over about 20 seconds rather than cutting the width further.
+- Record just the browser window, not the whole screen.
+
+Everything above adds up to about 8 MB.
 
 ## Security notes
 
