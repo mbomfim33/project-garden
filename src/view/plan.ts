@@ -1,4 +1,4 @@
-import type { Space, Vec2 } from '../space/types';
+import type { Overhead, Space, Vec2 } from '../space/types';
 import { centroid, compassPoint, edgeSpan, type Sun, wallHeight } from '../engine';
 
 export const COL = {
@@ -144,14 +144,26 @@ export function drawObstacles(ctx: CanvasRenderingContext2D, project: Project, s
  * tinted fill, hatching, an offset ghost outline to suggest it floats above the
  * floor, and its clearance written on it.
  */
-export function drawOverhead(
+export function drawOverheads(
   ctx: CanvasRenderingContext2D,
   project: Project,
   space: Space,
   labelled = false,
+  highlight = -1,
 ) {
-  const slab = space.overhead;
-  if (!slab || slab.footprint.length < 3) return;
+  (space.overheads ?? []).forEach((slab, i) => {
+    drawOneOverhead(ctx, project, slab, labelled, i === highlight);
+  });
+}
+
+function drawOneOverhead(
+  ctx: CanvasRenderingContext2D,
+  project: Project,
+  slab: Overhead,
+  labelled: boolean,
+  on: boolean,
+) {
+  if (slab.footprint.length < 3) return;
   const pts = slab.footprint.map(project);
 
   ctx.save();
@@ -168,8 +180,8 @@ export function drawOverhead(
   ctx.stroke();
 
   ctx.setLineDash([6, 4]);
-  ctx.strokeStyle = 'rgba(140,168,216,0.9)';
-  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = on ? '#ffffff' : 'rgba(140,168,216,0.9)';
+  ctx.lineWidth = on ? 2.4 : 1.6;
   pathPoly(ctx, project, slab.footprint);
   ctx.stroke();
   ctx.restore();
@@ -177,8 +189,48 @@ export function drawOverhead(
   if (!labelled) return;
   const cx = pts.reduce((a, p) => a + p.x, 0) / pts.length;
   const cy = pts.reduce((a, p) => a + p.y, 0) / pts.length;
-  drawLabel(ctx, cx, cy - 7, 'ROOF OVERHEAD', '#8fa8d8', 9);
+  const wide = Math.max(...pts.map((p) => p.x)) - Math.min(...pts.map((p) => p.x));
+  if (wide < 60) {
+    drawLabel(ctx, cx, cy, `${slab.height.toFixed(1)}m`, '#8fa8d8', 9);
+    return;
+  }
+  drawLabel(ctx, cx, cy - 7, (slab.label ?? 'ROOF').toUpperCase(), '#8fa8d8', 9);
   drawLabel(ctx, cx, cy + 6, `${slab.height.toFixed(1)} m above the floor`, 'rgba(143,168,216,0.75)', 9);
+}
+
+/** The piece being traced out, before it is committed. */
+export function drawOverheadDraft(
+  ctx: CanvasRenderingContext2D,
+  project: Project,
+  points: Vec2[],
+  cursor: Vec2 | null,
+) {
+  if (!points.length) return;
+  const pts = points.map(project);
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = 'rgba(140,168,216,0.95)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+  if (cursor) {
+    const c = project(cursor);
+    ctx.lineTo(c.x, c.y);
+  }
+  ctx.stroke();
+
+  if (points.length >= 3) {
+    ctx.fillStyle = 'rgba(110,134,184,0.14)';
+    ctx.fill();
+  }
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#8fa8d8';
+  pts.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, i === 0 ? 5 : 3.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
 }
 
 /** Band thickness in screen pixels, so a wall reads the same at any zoom. */

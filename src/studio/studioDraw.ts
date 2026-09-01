@@ -8,7 +8,7 @@ import {
   drawDoors,
   drawFloor,
   drawObstacles,
-  drawOverhead,
+  drawOverheads,
   drawWalls,
   pathPoly,
 } from '../view/plan';
@@ -58,7 +58,7 @@ export function drawPlanBase(
 export function drawStructures(ctx: CanvasRenderingContext2D, T: T, space: Space) {
   const to = project(T);
   drawWalls(ctx, to, space);
-  drawOverhead(ctx, to, space);
+  drawOverheads(ctx, to, space);
   drawDoors(ctx, to, space);
   drawBoundary(ctx, to, space.boundary);
 }

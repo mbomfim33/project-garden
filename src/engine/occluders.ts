@@ -101,12 +101,9 @@ export function occludersOf(space: Space): Occluder[] {
     out.push({ footprint: o.footprint, height: o.height, kind: 'vertical', solid: o.solid });
   }
 
-  if (space.overhead && space.overhead.footprint.length >= 3 && space.overhead.height > 0) {
-    out.push({
-      footprint: space.overhead.footprint,
-      height: space.overhead.height,
-      kind: 'overhead',
-    });
+  for (const slab of space.overheads ?? []) {
+    if (slab.footprint.length < 3 || slab.height <= 0) continue;
+    out.push({ footprint: slab.footprint, height: slab.height, kind: 'overhead' });
   }
 
   return out;

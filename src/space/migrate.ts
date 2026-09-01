@@ -1,14 +1,22 @@
 import type { Edge, Space } from './types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 type AnySpace = Record<string, unknown>;
 
-/**
- * One step per version bump, each returning the blob at the next version.
- * Empty while there's only ever been one shape.
- */
-const steps: Record<number, (s: AnySpace) => AnySpace> = {};
+/** One step per version bump, each returning the blob at the next version. */
+const steps: Record<number, (s: AnySpace) => AnySpace> = {
+  // A space used to have at most one roof piece. Real roofs come in parts —
+  // a soffit over the back, an eave past the rail — so it became a list.
+  1: (s) => {
+    const { overhead, ...rest } = s;
+    return {
+      ...rest,
+      overheads: overhead ? [overhead] : (s.overheads ?? []),
+      schemaVersion: 2,
+    };
+  },
+};
 
 /** edges[i] describes the segment leaving boundary[i], so the two stay the same length. */
 function repairEdges(s: AnySpace): void {
@@ -37,6 +45,7 @@ function migrateNode(raw: AnySpace): AnySpace {
   s.schemaVersion = SCHEMA_VERSION;
   if (!Array.isArray(s.boundary)) s.boundary = [];
   if (!Array.isArray(s.obstacles)) s.obstacles = [];
+  if (!Array.isArray(s.overheads)) s.overheads = [];
   if (typeof s.geo !== 'object' || s.geo === null) s.geo = { lat: -23.5, bearing: 0 };
   repairEdges(s);
   return s;

@@ -21,7 +21,10 @@ export type Action =
   | { kind: 'ADD_OBSTACLE'; obstacle: Obstacle }
   | { kind: 'SET_OBSTACLE'; i: number; patch: Partial<Obstacle> }
   | { kind: 'DELETE_OBSTACLE'; i: number }
-  | { kind: 'SET_OVERHEAD'; overhead: Overhead | undefined }
+  | { kind: 'ADD_OVERHEAD'; overhead: Overhead }
+  | { kind: 'SET_OVERHEAD'; i: number; patch: Partial<Overhead> }
+  | { kind: 'DELETE_OVERHEAD'; i: number }
+  | { kind: 'CLEAR_OVERHEADS' }
   | { kind: 'SET_GEO'; patch: Partial<Space['geo']> }
   | { kind: 'SET_NAME'; name: string }
   | { kind: 'SET_BASE'; base: BaseImage | undefined };
@@ -176,12 +179,22 @@ export function reducer(doc: EditorDoc, action: Action): EditorDoc {
     case 'DELETE_OBSTACLE':
       return withSpace(doc, { obstacles: space.obstacles.filter((_, i) => i !== action.i) });
 
+    case 'ADD_OVERHEAD':
+      return withSpace(doc, { overheads: [...(space.overheads ?? []), action.overhead] });
+
     case 'SET_OVERHEAD': {
-      const next = { ...space };
-      if (action.overhead) next.overhead = action.overhead;
-      else delete next.overhead;
-      return { ...doc, space: next };
+      const list = space.overheads ?? [];
+      if (!list[action.i]) return doc;
+      const next = list.slice();
+      next[action.i] = { ...next[action.i], ...action.patch };
+      return withSpace(doc, { overheads: next });
     }
+
+    case 'DELETE_OVERHEAD':
+      return withSpace(doc, { overheads: (space.overheads ?? []).filter((_, i) => i !== action.i) });
+
+    case 'CLEAR_OVERHEADS':
+      return withSpace(doc, { overheads: [] });
 
     case 'SET_GEO':
       return withSpace(doc, { geo: { ...space.geo, ...action.patch } });

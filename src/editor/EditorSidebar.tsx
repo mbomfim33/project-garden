@@ -9,7 +9,7 @@ import {
 import { area, bounds, pip, wallHeight } from '../engine';
 import { fileToBaseImage } from '../view/baseImage';
 import type { Action, EditorDoc } from './editorReducer';
-import { type Tool, overheadOverAll, overheadOverPart } from './tools';
+import { type Tool, growPolygon, overheadOverAll, overheadOverPart } from './tools';
 import { CompassDial } from './CompassDial';
 import { EdgeList } from './EdgeList';
 import { ObstacleList } from './ObstacleList';
@@ -48,6 +48,10 @@ export type SidebarProps = {
   setTreeHeight: (v: number) => void;
   clearance: number;
   setClearance: (v: number) => void;
+  eave: number;
+  setEave: (v: number) => void;
+  selectedOverhead: number;
+  setSelectedOverhead: (i: number) => void;
   calibrationLine: [Vec2, Vec2] | null;
   setCalibrationLine: (l: [Vec2, Vec2] | null) => void;
   notice: string | null;
@@ -73,6 +77,7 @@ export function EditorSidebar(props: SidebarProps) {
     markDirty();
   };
 
+  const slabs = space.overheads ?? [];
   const walls = space.edges.filter((e) => wallHeight(e) > 0).length;
   const doors = space.edges.filter((e) => e.door != null).length;
 
@@ -185,86 +190,154 @@ export function EditorSidebar(props: SidebarProps) {
       {doc.closed ? (
         <Panel
           title="Overhead"
-          summary={space.overhead ? `${space.overhead.height.toFixed(1)} m up` : 'open sky'}
+          summary={
+            slabs.length ? `${slabs.length} piece${slabs.length === 1 ? '' : 's'}` : 'open sky'
+          }
           open={open === 'overhead'}
           onToggle={() => toggle('overhead')}
         >
-          {space.overhead ? (
+          {slabs.length ? (
             <>
-              <SlabSection clearance={space.overhead.height} coverage={slabCoverage(space)} />
-              <NumberField
-                label="Clearance"
-                value={space.overhead.height}
-                step={0.1}
-                min={0.3}
-                onChange={(height) =>
-                  act({ kind: 'SET_OVERHEAD', overhead: { ...space.overhead!, height } })
-                }
-              />
-              <div className="row">
-                <button aria-pressed={tool === 'overhead'} onClick={() => setTool('overhead')}>
-                  Redraw
-                </button>
-                <button
-                  className="danger"
-                  onClick={() => act({ kind: 'SET_OVERHEAD', overhead: undefined })}
-                >
-                  Remove
-                </button>
-              </div>
+              <SlabSection clearance={slabs[0].height} coverage={slabCoverage(space)} />
+              <ul className="objlist">
+                {slabs.map((slab, i) => {
+                  const on = i === props.selectedOverhead;
+                  return (
+                    <li key={i} className={on ? 'on' : undefined}>
+                      <button
+                        className="row"
+                        onClick={() => props.setSelectedOverhead(on ? -1 : i)}
+                      >
+                        <span className="chip canopy">Roof</span>
+                        <span className="name">{slab.label ?? `Piece ${i + 1}`}</span>
+                        <span className="dim">{area(slab.footprint).toFixed(1)} m²</span>
+                        <span className="h">{slab.height.toFixed(1)} m</span>
+                      </button>
+                      {on ? (
+                        <div className="detail">
+                          <label className="field">
+                            Height
+                            <input
+                              type="number"
+                              value={slab.height}
+                              step={0.1}
+                              min={0.3}
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                if (Number.isFinite(v))
+                                  act({ kind: 'SET_OVERHEAD', i, patch: { height: v } });
+                              }}
+                            />
+                            <span className="dim">m above the floor</span>
+                          </label>
+                          <div className="row">
+                            <button
+                              className="danger"
+                              onClick={() => {
+                                act({ kind: 'DELETE_OVERHEAD', i });
+                                props.setSelectedOverhead(-1);
+                              }}
+                            >
+                              Delete piece
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="hint">
+                Pieces may overlap and may reach past the walls. Add as many as the real roof
+                has.
+              </p>
             </>
           ) : (
-            <>
-              <p className="hint">
-                A roof, soffit or pergola above the floor. It blocks high sun and lets low sun in
-                underneath, so it bites hardest in summer.
-              </p>
+            <p className="hint">
+              A roof, soffit or pergola above the floor. It blocks high sun and lets low sun in
+              underneath, so it matters most in summer.
+            </p>
+          )}
+
+          <div className="newthing">
+            <span className="tag accent">Add a piece</span>
+            <div className="pair">
               <NumberField
-                label="Clearance"
+                label="Height"
                 value={props.clearance}
                 onChange={props.setClearance}
                 step={0.1}
                 min={0.3}
               />
-              <div className="row">
+              <NumberField
+                label="Past walls"
+                value={props.eave}
+                onChange={props.setEave}
+                step={0.05}
+                min={0}
+              />
+            </div>
+            <p className="hint">
+              Past walls is how far the roof reaches beyond the outline, in metres. An eave of
+              0.3 is common.
+            </p>
+            <div className="row">
+              <button
+                onClick={() =>
+                  act({
+                    kind: 'ADD_OVERHEAD',
+                    overhead: {
+                      ...overheadOverAll(grow(space.boundary, props.eave), props.clearance),
+                      label: 'Whole roof',
+                    },
+                  })
+                }
+              >
+                Over all of it
+              </button>
+            </div>
+            <div className="row">
+              {[0.5, 0.66].map((f) => (
                 <button
+                  key={f}
                   onClick={() =>
                     act({
-                      kind: 'SET_OVERHEAD',
-                      overhead: overheadOverAll(space.boundary, props.clearance),
-                    })
-                  }
-                >
-                  Over all of it
-                </button>
-              </div>
-              <div className="row">
-                {[0.5, 0.66].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() =>
-                      act({
-                        kind: 'SET_OVERHEAD',
-                        overhead: overheadOverPart(
-                          space.boundary,
+                      kind: 'ADD_OVERHEAD',
+                      overhead: {
+                        ...overheadOverPart(
+                          grow(space.boundary, props.eave),
                           props.clearance,
                           f,
                           openestEdge(space),
                         ),
-                      })
-                    }
-                  >
-                    Back {Math.round(f * 100)}%
-                  </button>
-                ))}
-              </div>
+                        label: `Back ${Math.round(f * 100)}%`,
+                      },
+                    })
+                  }
+                >
+                  Back {Math.round(f * 100)}%
+                </button>
+              ))}
+            </div>
+            <div className="row">
+              <button aria-pressed={tool === 'overhead'} onClick={() => setTool('overhead')}>
+                Drag a rectangle
+              </button>
+              <button
+                aria-pressed={tool === 'overheadTrace'}
+                onClick={() => setTool('overheadTrace')}
+              >
+                Trace a shape
+              </button>
+            </div>
+            {slabs.length ? (
               <div className="row">
-                <button aria-pressed={tool === 'overhead'} onClick={() => setTool('overhead')}>
-                  Or drag it out
+                <button className="danger" onClick={() => act({ kind: 'CLEAR_OVERHEADS' })}>
+                  Remove all
                 </button>
               </div>
-            </>
-          )}
+            ) : null}
+          </div>
         </Panel>
       ) : null}
 
@@ -362,6 +435,10 @@ function ShapeStart({
   );
 }
 
+/** Only grow the ring when an eave was actually asked for. */
+const grow = (poly: Space['boundary'], metres: number) =>
+  metres > 0 ? growPolygon(poly, metres) : poly;
+
 /** The longest open edge, which is the side a soffit usually stops short of. */
 function openestEdge(space: Space): number {
   let best = 0;
@@ -387,8 +464,8 @@ function openestEdge(space: Space): number {
  * per cent.
  */
 function slabCoverage(space: Space): number {
-  const slab = space.overhead;
-  if (!slab || space.boundary.length < 3) return 0;
+  const slabs = space.overheads ?? [];
+  if (!slabs.length || space.boundary.length < 3) return 0;
   const b = bounds(space.boundary);
   const step = Math.max((b.maxX - b.minX) / 60, 0.02);
   let inside = 0;
@@ -397,7 +474,7 @@ function slabCoverage(space: Space): number {
     for (let y = b.minY; y <= b.maxY; y += step) {
       if (!pip(x, y, space.boundary)) continue;
       inside++;
-      if (pip(x, y, slab.footprint)) under++;
+      if (slabs.some((slab) => pip(x, y, slab.footprint))) under++;
     }
   }
   return inside ? under / inside : 0;

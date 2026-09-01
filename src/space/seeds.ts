@@ -32,7 +32,12 @@ export function balconySeed(): Space {
     boundary: rect(0, 0, 4, 2.5),
     edges: [wall(3, 0.5), wall(2.8), OPEN, wall(2.8)],
     obstacles: [],
-    overhead: { footprint: rect(0, 0, 4, 1.45), height: 2.6 },
+    overheads: [
+      { footprint: rect(0, 0, 4, 1.45), height: 2.6, label: 'Soffit' },
+      // The slab reaches 30 cm past the side walls, the way an eave does.
+      { footprint: rect(-0.3, 0, 0, 1.45), height: 2.6, label: 'Eave' },
+      { footprint: rect(4, 0, 4.3, 1.45), height: 2.6, label: 'Eave' },
+    ],
     geo: { lat: -23.55, lng: -46.63, bearing: 0 },
     schemaVersion: SCHEMA_VERSION,
   };

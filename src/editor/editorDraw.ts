@@ -10,7 +10,8 @@ import {
   drawGround,
   drawMetricGrid,
   drawObstacles,
-  drawOverhead,
+  drawOverheadDraft,
+  drawOverheads,
   drawScaleBar,
   drawWalls,
   drawCompassRose,
@@ -35,6 +36,9 @@ export type EditorScene = {
   selectedVertex: number;
   selectedEdge: number;
   selectedObstacle: number;
+  selectedOverhead: number;
+  /** Roof piece being traced out, if any. */
+  overheadDraft: Vec2[];
   /** Edge the pointer is over in the sidebar list, highlighted on the plan. */
   hoveredEdge: number;
   calibrationLine: [Vec2, Vec2] | null;
@@ -71,7 +75,7 @@ export function drawEditor(
     if (!space.base) drawFloor(ctx, project, space);
     drawObstacles(ctx, project, space);
     drawWalls(ctx, project, space, scene.hoveredEdge >= 0 ? scene.hoveredEdge : scene.selectedEdge);
-    drawOverhead(ctx, project, space, true);
+    drawOverheads(ctx, project, space, true, scene.selectedOverhead);
     drawDoors(ctx, project, space);
   } else if (space.boundary.length) {
     drawObstacles(ctx, project, space);
@@ -88,6 +92,9 @@ export function drawEditor(
   });
 
   if (!scene.closed) drawDraftTail(ctx, project, scene);
+  if (scene.overheadDraft.length) {
+    drawOverheadDraft(ctx, project, scene.overheadDraft, scene.hoverPoint);
+  }
   if (scene.pendingRect) drawPendingRect(ctx, project, scene.pendingRect, scene.tool);
   if (scene.snapCue) drawSnapCue(ctx, project, scene.snapCue);
   if (scene.calibrationLine) drawCalibrationLine(ctx, project, scene.calibrationLine);

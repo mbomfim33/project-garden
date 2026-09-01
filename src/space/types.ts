@@ -32,11 +32,16 @@ export type Obstacle = {
   label?: string;
 };
 
-/** A slab floating overhead: soffit, pergola, the neighbour's balcony. */
+/**
+ * One piece of roof above the floor: a soffit, a pergola, the balcony
+ * upstairs. A space can have several, and they may overlap or reach past the
+ * walls — an eave usually does.
+ */
 export type Overhead = {
   footprint: Vec2[];
   /** Clearance above the floor, not the slab's own thickness. */
   height: number;
+  label?: string;
 };
 
 export type Calibration = {
@@ -65,7 +70,8 @@ export type Space = {
   /** One per boundary segment; always the same length as boundary. */
   edges: Edge[];
   obstacles: Obstacle[];
-  overhead?: Overhead;
+  /** Roof pieces above the floor. */
+  overheads?: Overhead[];
   geo: { lat: number; lng?: number; bearing: number };
   base?: BaseImage;
   schemaVersion: number;

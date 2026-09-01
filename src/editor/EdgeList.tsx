@@ -12,7 +12,7 @@ function tallest(space: Space): number {
     const h = wallHeight(e);
     if (h > max) max = h;
   }
-  if (space.overhead) max = Math.max(max, space.overhead.height);
+  for (const slab of space.overheads ?? []) max = Math.max(max, slab.height);
   return max;
 }
 

@@ -4,7 +4,7 @@ import { buildGridSeries, cellAt, cellHourly, indexAt, summarise } from './grid'
 import { edgeSpan, occludersOf, shadowOf, wallHeight } from './occluders';
 import { microclimate } from './microclimate';
 import { isCCW, signedArea } from './geom';
-import { balconySeed, gardenSeed, landSeed } from '../space/seeds';
+import { balconySeed, gardenSeed, landSeed, rect } from '../space/seeds';
 import type { Space } from '../space/types';
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -204,11 +204,41 @@ describe('wall height and run', () => {
 
 describe('occludersOf', () => {
   it('raises a wall per walled edge and leaves open ones alone', () => {
-    const occ = occludersOf(balconySeed());
-    const walls = occ.filter((o) => o.kind === 'vertical');
-    const slabs = occ.filter((o) => o.kind === 'overhead');
-    expect(walls).toHaveLength(3);
-    expect(slabs).toHaveLength(1);
+    const space = balconySeed();
+    const occ = occludersOf(space);
+    expect(occ.filter((o) => o.kind === 'vertical')).toHaveLength(3);
+    expect(occ.filter((o) => o.kind === 'overhead')).toHaveLength(space.overheads!.length);
+  });
+
+  it('shades the floor from a roof piece that reaches past the walls', () => {
+    // A roof reaching a metre beyond the open rail. For its shadow to land back
+    // on the floor the sun has to be high enough that the throw is short, so
+    // this is a mid-latitude summer with the opening turned toward the equator.
+    const base: Space = { ...balconySeed(), geo: { lat: 51.5, bearing: Math.PI } };
+    const withEave: Space = {
+      ...base,
+      overheads: [
+        ...base.overheads!,
+        { footprint: rect(0, 2.5, 4, 3.5), height: 2.6, label: 'Eave past the rail' },
+      ],
+    };
+    expect(meanSummerHours(withEave)).toBeLessThan(meanSummerHours(base));
+  });
+
+  it('lets several roof pieces stack up into one shape', () => {
+    const space = balconySeed();
+    const halves: Space = {
+      ...space,
+      overheads: [
+        { footprint: rect(0, 0, 2, 1.45), height: 2.6 },
+        { footprint: rect(2, 0, 4, 1.45), height: 2.6 },
+      ],
+    };
+    const whole: Space = {
+      ...space,
+      overheads: [{ footprint: rect(0, 0, 4, 1.45), height: 2.6 }],
+    };
+    expect(meanSummerHours(halves)).toBeCloseTo(meanSummerHours(whole), 6);
   });
 
   it('halves the height of a half wall', () => {
@@ -281,7 +311,7 @@ describe('buildGridSeries', () => {
 
   it('gets that sun back when the slab comes off', () => {
     const withSlab = meanSummerHours(balconySeed());
-    const openSky = meanSummerHours({ ...balconySeed(), overhead: undefined });
+    const openSky = meanSummerHours({ ...balconySeed(), overheads: [] });
     expect(openSky).toBeGreaterThan(withSlab);
   });
 

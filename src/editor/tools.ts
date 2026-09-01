@@ -1,5 +1,5 @@
 import type { Obstacle, Overhead, Vec2 } from '../space/types';
-import { circlePoly } from '../engine';
+import { circlePoly, signedArea } from '../engine';
 
 export type Tool =
   | 'select'
@@ -10,6 +10,7 @@ export type Tool =
   | 'box'
   | 'tree'
   | 'overhead'
+  | 'overheadTrace'
   | 'calibrate';
 
 export const TOOL_HINT: Record<Tool, string> = {
@@ -20,12 +21,21 @@ export const TOOL_HINT: Record<Tool, string> = {
   door: 'Click an edge to put a door on it, then drag the marker along.',
   box: 'Drag out a rectangle for a shed, a raised bed or a neighbouring wall.',
   tree: 'Click where the trunk is. Set the canopy radius and height on the right.',
-  overhead: 'Drag out the slab above you — a soffit, a pergola, the balcony upstairs.',
+  overhead: 'Drag out a rectangle for the roof above you.',
+  overheadTrace: 'Click corner by corner to trace a roof piece. Click the first corner again to finish.',
   calibrate: 'Drag a line along something whose length you know, then type the length.',
 };
 
 /** Which tools need a closed boundary before they mean anything. */
-export const NEEDS_SHAPE: Tool[] = ['insert', 'wall', 'door', 'box', 'tree', 'overhead'];
+export const NEEDS_SHAPE: Tool[] = [
+  'insert',
+  'wall',
+  'door',
+  'box',
+  'tree',
+  'overhead',
+  'overheadTrace',
+];
 
 export function rectFootprint(p0: Vec2, p1: Vec2): Vec2[] {
   const x0 = Math.min(p0.x, p1.x);
@@ -75,9 +85,57 @@ export function atLeast(p0: Vec2, p1: Vec2, minM = 0.4): [Vec2, Vec2] {
   return out;
 }
 
-/** The slab covering the whole space, which is the common balcony case. */
+/** The roof covering the whole space, which is the common balcony case. */
 export function overheadOverAll(boundary: Vec2[], clearance: number): Overhead {
   return { footprint: boundary.map((p) => ({ ...p })), height: clearance };
+}
+
+/**
+ * Pushes a ring outward by a fixed distance, for the bit of roof that reaches
+ * past the walls. Each edge line moves out and consecutive lines are
+ * intersected, so corners stay sharp instead of rounding off.
+ */
+export function growPolygon(poly: Vec2[], metres: number): Vec2[] {
+  const n = poly.length;
+  if (n < 3 || metres === 0) return poly.map((p) => ({ ...p }));
+
+  // Outward is (dy, -dx) for a counter-clockwise ring, the other way round for
+  // a clockwise one.
+  const sign = signedArea(poly) > 0 ? 1 : -1;
+  const normals = poly.map((a, i) => {
+    const b = poly[(i + 1) % n];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: (sign * dy) / len, y: (-sign * dx) / len };
+  });
+
+  const out: Vec2[] = [];
+  for (let i = 0; i < n; i++) {
+    const prev = (i - 1 + n) % n;
+    const np = normals[prev];
+    const nn = normals[i];
+    const v = poly[i];
+
+    // Two offset edge lines through the moved vertex; solve for where they meet.
+    const dpx = v.x - poly[prev].x;
+    const dpy = v.y - poly[prev].y;
+    const dnx = poly[(i + 1) % n].x - v.x;
+    const dny = poly[(i + 1) % n].y - v.y;
+    const det = dpx * dny - dpy * dnx;
+
+    if (Math.abs(det) < 1e-9) {
+      out.push({ x: v.x + nn.x * metres, y: v.y + nn.y * metres });
+      continue;
+    }
+    const ax = v.x + np.x * metres;
+    const ay = v.y + np.y * metres;
+    const bx = v.x + nn.x * metres;
+    const by = v.y + nn.y * metres;
+    const t = ((bx - ax) * dny - (by - ay) * dnx) / det;
+    out.push({ x: ax + dpx * t, y: ay + dpy * t });
+  }
+  return out;
 }
 
 /**

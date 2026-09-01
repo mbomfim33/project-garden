@@ -18,7 +18,8 @@ const GROUPS: Group[] = [
       { key: 'door', label: 'Door', shortcut: 'R' },
       { key: 'box', label: 'Structure', shortcut: 'B' },
       { key: 'tree', label: 'Tree', shortcut: 'T' },
-      { key: 'overhead', label: 'Overhead', shortcut: 'O' },
+      { key: 'overhead', label: 'Roof', shortcut: 'O' },
+      { key: 'overheadTrace', label: 'Trace roof', shortcut: 'G' },
     ],
   },
 ];
