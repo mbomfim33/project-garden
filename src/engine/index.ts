@@ -45,6 +45,7 @@ export {
   cellAt,
   cellCentre,
   cellHourly,
+  estimateCells,
   indexAt,
   lightClass,
   resolveCellSize,

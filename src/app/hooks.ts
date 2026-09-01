@@ -8,7 +8,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  */
 export function useAnimationFrame(onFrame: (dt: number) => void, active: boolean) {
   const cb = useRef(onFrame);
-  cb.current = onFrame;
+  useEffect(() => {
+    cb.current = onFrame;
+  }, [onFrame]);
 
   useEffect(() => {
     if (!active) return;

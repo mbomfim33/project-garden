@@ -103,13 +103,6 @@ button.primary:hover:not(:disabled) { background: #f2b84b; }
 button.ghost { background: transparent; }
 button.danger:hover:not(:disabled) { border-color: var(--danger); background: rgba(201, 106, 75, 0.14); color: #eab9a8; }
 
-button[aria-pressed="true"] {
-  background: var(--accent);
-  color: #20180a;
-  border-color: var(--accent);
-  font-weight: 600;
-}
-
 label.field {
   display: flex;
   align-items: center;
@@ -127,8 +120,18 @@ label.field input[type="text"] { width: 84px; text-transform: none; letter-spaci
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .seg button { border: none; border-radius: 0; background: transparent; }
 .seg button + button { border-left: 1px solid var(--line); }
-.seg button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.04); border-color: transparent; }
-.seg button[aria-pressed="true"]:hover { background: #f2b84b; }
+.seg button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); border-color: transparent; }
+
+/* After .seg, so a pressed segment stays filled rather than going transparent. */
+button[aria-pressed="true"],
+.seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #20180a;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+button[aria-pressed="true"]:hover:not(:disabled),
+.seg button[aria-pressed="true"]:hover:not(:disabled) { background: #f7c766; color: #20180a; }
 
 input[type="range"] {
   -webkit-appearance: none;

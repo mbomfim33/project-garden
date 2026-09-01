@@ -1,6 +1,5 @@
 import type { Edge, Space, Vec2 } from './types';
 import { circlePoly } from '../engine/geom';
-import { newId } from './store';
 import { SCHEMA_VERSION } from './migrate';
 
 export function rect(x0: number, y0: number, x1: number, y1: number): Vec2[] {
@@ -16,6 +15,10 @@ const OPEN: Edge = { wall: 'none', height: 0 };
 
 const wall = (height: number, door?: number): Edge => ({ wall: 'full', height, ...(door != null ? { door } : {}) });
 
+// Fixed ids: the same three worked examples for everyone, so their links are
+// shareable and a re-seed can't quietly duplicate them.
+export const DEMO_IDS = ['demo-balcony', 'demo-garden', 'demo-plot'] as const;
+
 /**
  * A recessed balcony: building behind, walls either side, open to the north,
  * and a slab overhead covering the back half. The slab is usually the thing
@@ -23,7 +26,7 @@ const wall = (height: number, door?: number): Edge => ({ wall: 'full', height, .
  */
 export function balconySeed(): Space {
   return {
-    id: newId(),
+    id: 'demo-balcony',
     name: 'Recessed balcony',
     type: 'balcony',
     boundary: rect(0, 0, 4, 2.5),
@@ -38,7 +41,7 @@ export function balconySeed(): Space {
 /** A back garden with the house on the sunny side and one mature tree. */
 export function gardenSeed(): Space {
   return {
-    id: newId(),
+    id: 'demo-garden',
     name: 'Back garden',
     type: 'garden',
     boundary: rect(0, 0, 10, 8),
@@ -64,7 +67,7 @@ export function landSeed(): Space {
     { x: 3, y: 16 },
   ];
   return {
-    id: newId(),
+    id: 'demo-plot',
     name: 'Half-hectare plot',
     type: 'land',
     boundary,

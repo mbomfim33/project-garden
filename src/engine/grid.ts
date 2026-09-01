@@ -55,6 +55,14 @@ export function resolveCellSize(space: Space, requested?: number): number {
   return size;
 }
 
+/** How many cells the sweep would cover, without laying any of them out. */
+export function estimateCells(space: Space, cellSize?: number): number {
+  if (space.boundary.length < 3) return 0;
+  const size = resolveCellSize(space, cellSize);
+  const b = bounds(space.boundary);
+  return Math.ceil((b.maxX - b.minX) / size) * Math.ceil((b.maxY - b.minY) / size);
+}
+
 function emptyGrid(cellSize: number): Grid {
   return {
     cols: 0,

@@ -280,11 +280,22 @@ export function drawCompassRose(
 }
 
 /** A bar labelled in whole metres, so the drawing has a sense of size. */
-export function drawScaleBar(ctx: CanvasRenderingContext2D, span: Span, x: number, y: number) {
+export function drawScaleBar(
+  ctx: CanvasRenderingContext2D,
+  span: Span,
+  edge: number,
+  y: number,
+  align: 'left' | 'right' = 'left',
+) {
   const targetPx = 110;
-  const nice = [0.5, 1, 2, 5, 10, 20, 50, 100, 200];
-  const metres = nice.find((m) => span(m) >= targetPx) ?? nice[nice.length - 1];
+  const nice = [0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500];
+  // Closest to the target rather than the first one past it, or the bar jumps
+  // from stubby to half the canvas as you zoom.
+  const metres = nice.reduce((best, m) =>
+    Math.abs(span(m) - targetPx) < Math.abs(span(best) - targetPx) ? m : best,
+  );
   const w = span(metres);
+  const x = align === 'right' ? edge - w : edge;
 
   ctx.save();
   ctx.strokeStyle = 'rgba(235,227,210,0.7)';
@@ -308,7 +319,7 @@ export function drawLabel(
   x: number,
   y: number,
   text: string,
-  color = COL.sage,
+  color: string = COL.sage,
   size = 10,
 ) {
   ctx.save();
