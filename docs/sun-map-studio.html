@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PlantAI — Sun Map Studio</title>
+<style>
+  :root {
+    --ground: #15130E;
+    --ground-2: #1E1B14;
+    --panel: #211D15;
+    --panel-2: #2A2519;
+    --text: #EBE3D2;
+    --text-dim: #A89F8C;
+    --line: #3A352A;
+    --accent: #E9A23A;
+    --shade: #6E86B8;
+    --sage: #93A77E;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--text);
+    font-family: var(--serif); font-size: 18px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(1100px 560px at 80% -10%, rgba(233,162,58,0.10), transparent 60%),
+      radial-gradient(820px 640px at 6% 110%, rgba(110,134,184,0.07), transparent 60%);
+  }
+  .doc { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 0 26px 90px; }
+
+  .topbar {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    padding: 26px 0 20px; font-family: var(--mono); font-size: 11.5px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .brand { color: var(--sage); }
+  .topbar .brand b { color: var(--text); font-weight: 600; }
+
+  .intro { padding: 46px 0 30px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.26em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 16px;
+  }
+  .intro h1 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(2rem, 5.4vw, 3.05rem);
+    line-height: 1.05; letter-spacing: -0.015em; margin: 0 0 18px; max-width: 20ch;
+  }
+  .intro h1 em { font-style: italic; color: var(--accent); }
+  .lede { font-size: 1.12rem; color: var(--text-dim); max-width: 62ch; margin: 0; }
+  .lede b { color: var(--text); font-weight: 600; }
+
+  /* ── studio ─────────────────────────────────── */
+  .studio { margin-top: 18px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--panel); }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tab {
+    flex: 1; appearance: none; border: none; background: transparent; cursor: pointer;
+    padding: 15px 10px 13px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-dim); border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .tab + .tab { border-left: 1px solid var(--line); }
+  .tab .ico { display: block; font-size: 18px; margin-bottom: 6px; -webkit-text-fill-color: initial; }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+  .tab.on { color: var(--accent); border-bottom-color: var(--accent); background: rgba(233,162,58,0.06); }
+
+  .stage { position: relative; background: #0F0D09; }
+  .stage canvas { display: block; width: 100%; height: auto; }
+  .caption {
+    position: absolute; left: 14px; bottom: 12px; right: 14px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--text-dim);
+    pointer-events: none; text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+  .caption b { color: var(--sage); font-weight: 500; }
+
+  .readout {
+    display: flex; flex-wrap: wrap; gap: 5px 22px; padding: 11px 16px;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--text-dim);
+    background: rgba(0,0,0,0.22);
+  }
+  .readout b { color: var(--text); font-weight: 500; }
+  .readout .k { color: var(--sage); }
+
+  /* controls */
+  .controls { padding: 16px; display: grid; grid-template-columns: auto 1fr; gap: 16px 22px; align-items: center; }
+  .ctl { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .ctl.full { grid-column: 1 / -1; }
+  .clabel {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-dim); white-space: nowrap; min-width: 64px;
+  }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+  .seg button {
+    appearance: none; border: none; background: transparent; cursor: pointer;
+    padding: 7px 14px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    color: var(--text-dim); transition: background .15s, color .15s;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent); color: #20180a; font-weight: 600; }
+  .seg button:not(.on):hover { color: var(--text); background: rgba(255,255,255,0.03); }
+
+  .playbtn {
+    appearance: none; cursor: pointer; width: 40px; height: 40px; flex: 0 0 auto;
+    border: 1px solid var(--line); border-radius: 50%; background: var(--panel-2); color: var(--accent);
+    font-size: 15px; display: grid; place-items: center; transition: border-color .15s, background .15s;
+  }
+  .playbtn:hover { border-color: var(--accent); background: rgba(233,162,58,0.1); }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 3px;
+    background: var(--line); outline-offset: 4px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #20180a; cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
+    border: 2px solid #20180a; cursor: pointer;
+  }
+  input[type=range]:disabled { opacity: 0.4; }
+  input[type=range]:disabled::-webkit-slider-thumb { background: var(--text-dim); }
+  .val { font-family: var(--mono); font-size: 11px; color: var(--text); min-width: 52px; text-align: right; }
+
+  /* legend */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: center;
+    padding: 14px 16px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em; color: var(--text-dim);
+  }
+  .ramp { display: inline-block; width: 120px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 8px;
+    background: linear-gradient(90deg, #3A4D72, #6E86B8, #C6A45E, #F2B84B); }
+  .legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  .read { margin-top: 34px; max-width: 64ch; }
+  .read h2 { font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sage); margin: 0 0 12px; }
+  .read p { margin: 0 0 14px; font-size: 1rem; color: var(--text-dim); }
+  .read p b { color: var(--text); }
+  code { font-family: var(--mono); font-size: 0.84em; background: var(--ground-2); border: 1px solid var(--line);
+    border-radius: 3px; padding: 1px 5px; color: var(--sage); }
+
+  .foot {
+    margin-top: 54px; padding-top: 24px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--text-dim);
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px;
+  }
+  .foot b { color: var(--sage); font-weight: 500; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  @media (max-width: 600px) {
+    .doc { padding: 0 16px 70px; }
+    .controls { grid-template-columns: 1fr; }
+    .tab .ico { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc">
+
+  <div class="topbar">
+    <span class="brand">🌿 Plant<b>AI</b> · sun map studio</span>
+    <span>interactive · companion to the build guide</span>
+  </div>
+
+  <header class="intro">
+    <p class="eyebrow">Watch the light land — three spaces, one engine</p>
+    <h1>The same <em>sun map</em>, drawn over a balcony, a garden, and a plot.</h1>
+    <p class="lede">
+      Each tab is a worked example of the model from the build guide. Hit play and the sun arcs
+      across the day; walls, the house, trees, and the slab overhead throw <b>moving shadows</b>, and
+      the suitability grid recolours live. Switch to <b>Sun-hours</b> for the integrated map, and slide
+      the grid's opacity to see the space underneath. Tuned for a São Paulo latitude (−23.5°), summer.
+    </p>
+  </header>
+
+  <section class="studio">
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-scene="balcony" role="tab"><span class="ico">🪟</span>Balcony</button>
+      <button class="tab" data-scene="garden" role="tab"><span class="ico">🏡</span>Garden</button>
+      <button class="tab" data-scene="land" role="tab"><span class="ico">🗺️</span>Land</button>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="cv" aria-label="Plan view of the selected space with the sun orbiting and the suitability grid overlaid."></canvas>
+      <div class="caption" id="caption"></div>
+    </div>
+
+    <div class="readout">
+      <span><span class="k">time</span> <b id="ro-time">—</b></span>
+      <span><span class="k">sun&nbsp;altitude</span> <b id="ro-alt">—</b></span>
+      <span><span class="k">azimuth</span> <b id="ro-az">—</b></span>
+      <span><span class="k" id="ro-statk">cells&nbsp;lit</span> <b id="ro-stat">—</b></span>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <button class="playbtn" id="play" aria-label="Play or pause the sun">❚❚</button>
+        <span class="clabel" id="modehint">live shadow</span>
+      </div>
+      <div class="ctl">
+        <span class="clabel">Time</span>
+        <input type="range" id="time" min="0" max="1000" value="340" aria-label="Time of day" />
+        <span class="val" id="timeval">—</span>
+      </div>
+
+      <div class="ctl">
+        <span class="clabel">View</span>
+        <div class="seg" id="mode">
+          <button data-mode="live" class="on">Live shadow</button>
+          <button data-mode="acc">Sun-hours</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="clabel">Grid opacity</span>
+        <input type="range" id="opacity" min="0" max="100" value="74" aria-label="Grid overlay opacity" />
+        <span class="val" id="opval">74%</span>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="ramp"></span>shade → full sun</span>
+      <span><span class="dot" style="background:#2a2a2e;opacity:.6"></span>moving cast shadow</span>
+      <span>· grid cell ≈ <b id="leg-cell" style="color:var(--text)">0.25&nbsp;m</b></span>
+    </div>
+  </section>
+
+  <section class="read">
+    <h2>How to read it</h2>
+    <p>
+      In <b>Live shadow</b> the colour is the instantaneous answer — gold where the sun reaches the floor
+      right now, blue where something blocks it. Scrub the time bar to step through the day and watch the
+      shaded band sweep. In <b>Sun-hours</b> each cell is coloured by its <b>total</b> daylight hours across
+      the whole day — that integrated map is what the plant matcher actually reads.
+    </p>
+    <p>
+      The balcony shows why the slab overhead matters: the back half sits in soffit shade most of the day
+      while the open rail catches the low morning and evening sun. The garden's story is the house and the
+      tree; the plot's is the treeline to the north. Same <code>Space</code> model, same shadow projection —
+      only the boundary, the obstacles, and the cell size change.
+    </p>
+  </section>
+
+  <footer class="foot">
+    <span>🌿 Plant<b>AI</b> — sun map studio</span>
+    <span>simplified solar arc · S. hemisphere · for illustration</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── palette ──────────────────────────────────────────
+  const COL = {
+    ground:'#0F0D09', sage:'#93A77E', accent:'#E9A23A', shade:'#6E86B8',
+    dim:'#A89F8C', line:'#3A352A', soil:'#4a3a28', lawn:'#46613e', field:'#566b3d',
+    water:'#3f6f86', wall:'#6b6253', tile:'#3a3631',
+  };
+  const LAT = -23.5 * Math.PI/180;
+  const DAY = 355;            // summer solstice-ish, southern hemisphere
+  const SUNRISE = 6, SUNSET = 18;
+
+  // ── tiny seeded rng (stable textures) ────────────────
+  function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+  // ── solar model (simplified, well-behaved arc) ───────
+  // t in [0,1] maps SUNRISE..SUNSET. Sun rises E, arcs over N, sets W.
+  function sun(t){
+    const altDeg = 74 * Math.sin(Math.PI * t);          // peak ~74°
+    const Adeg = 90 - 180*t;                            // +90=E, 0=N, -90=W
+    const A = Adeg * Math.PI/180;
+    return {
+      t, altDeg, alt: altDeg*Math.PI/180,
+      azDeg: (Adeg+360)%360,
+      dir: { x: Math.sin(A), y: Math.cos(A) },          // ground vector TOWARD sun (E=+x, N=+y)
+    };
+  }
+  function clock(t){ const h=SUNRISE+(SUNSET-SUNRISE)*t; const hh=Math.floor(h), mm=Math.round((h-hh)*60); return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+  function compass(az){ const d=['N','NE','E','SE','S','SW','W','NW']; return d[Math.round(az/45)%8]; }
+
+  // ── geometry helpers ─────────────────────────────────
+  function pip(px, py, poly){            // point in polygon, ray cast
+    let inside=false;
+    for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+      const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+      if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
+    }
+    return inside;
+  }
+  function hull(pts){                     // Andrew's monotone chain
+    pts = pts.slice().sort((a,b)=> a.x-b.x || a.y-b.y);
+    if(pts.length<3) return pts;
+    const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+    const lo=[]; for(const p of pts){ while(lo.length>=2 && cross(lo[lo.length-2],lo[lo.length-1],p)<=0) lo.pop(); lo.push(p);}
+    const up=[]; for(let i=pts.length-1;i>=0;i--){ const p=pts[i]; while(up.length>=2 && cross(up[up.length-2],up[up.length-1],p)<=0) up.pop(); up.push(p);}
+    lo.pop(); up.pop(); return lo.concat(up);
+  }
+  function circlePoly(cx,cy,r,n){ const a=[]; for(let i=0;i<n;i++){ const t=i/n*2*Math.PI; a.push({x:cx+r*Math.cos(t), y:cy+r*Math.sin(t)}); } return a; }
+
+  // shadow polygon for one occluder at sun s
+  function shadowOf(occ, s, worldDiag){
+    const L = Math.min(occ.h / Math.tan(Math.max(s.alt, 0.04)), worldDiag*2.2);
+    const ox=-L*s.dir.x, oy=-L*s.dir.y;
+    const moved = occ.foot.map(p=>({x:p.x+ox, y:p.y+oy}));
+    if(occ.kind==='overhead') return moved;             // floating slab: translate only
+    return hull(occ.foot.concat(moved));                 // vertical: hull of base + top
+  }
+
+  // ── colour helpers ───────────────────────────────────
+  function hx(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+  function mix(a,b,t){ const A=hx(a),B=hx(b); return 'rgb('+Math.round(A[0]+(B[0]-A[0])*t)+','+Math.round(A[1]+(B[1]-A[1])*t)+','+Math.round(A[2]+(B[2]-A[2])*t)+')'; }
+  const RAMP=['#3A4D72','#6E86B8','#C6A45E','#F2B84B'];
+  function ramp(f){ f=Math.max(0,Math.min(1,f)); const seg=f*(RAMP.length-1); const i=Math.min(Math.floor(seg),RAMP.length-2); return mix(RAMP[i],RAMP[i+1],seg-i); }
+
+  // ── scene definitions ────────────────────────────────
+  function rect(x0,y0,x1,y1){ return [{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}]; }
+
+  const SCENES = {
+    balcony: {
+      label:'Recessed balcony · opens north (sun side) · soffit over the back',
+      world:{minX:-0.2, minY:-0.3, maxX:4.2, maxY:2.8}, cell:0.25,
+      boundary: rect(0,0,4,2.5),
+      occluders:[
+        {foot:rect(0,-0.16,4,0), h:3.0, kind:'vertical', solid:false},    // building wall (S/back)
+        {foot:rect(-0.16,0,0,2.5), h:2.8, kind:'vertical', solid:false},  // W side wall
+        {foot:rect(4,0,4.16,2.5), h:2.8, kind:'vertical', solid:false},   // E side wall
+        {foot:rect(0,0,4,1.45), h:2.6, kind:'overhead', solid:false},     // soffit over back ~58%
+      ],
+      base: drawBalcony,
+    },
+    garden: {
+      label:'10 × 8 m backyard · house to the north · mature tree',
+      world:{minX:-0.3, minY:-0.3, maxX:10.3, maxY:8.3}, cell:0.5,
+      boundary: rect(0,0,10,8),
+      occluders:[
+        {foot:rect(0,6.5,6,8), h:5.0, kind:'vertical', solid:true},        // house (N)
+        {foot:rect(8.7,6.7,10,8), h:2.6, kind:'vertical', solid:true},     // shed (NE)
+        {foot:circlePoly(7.6,3.0,1.35,14), h:4.6, kind:'vertical', solid:false}, // tree canopy
+        {foot:rect(-0.18,0,0,6.2), h:1.9, kind:'vertical', solid:false},   // W fence
+      ],
+      base: drawGarden,
+    },
+    land: {
+      label:'~40 × 30 m plot · traced usable area · treeline to the north',
+      world:{minX:-1, minY:-1, maxX:41, maxY:31}, cell:1.5,
+      boundary:[{x:4,y:3},{x:34,y:2.5},{x:38,y:14},{x:31,y:26.5},{x:11,y:28},{x:3,y:16}],
+      occluders:[
+        {foot:rect(5,27,35,30.5), h:8.0, kind:'vertical', solid:false},    // treeline / hedgerow (N)
+        {foot:rect(25.5,19.5,31,24), h:5.0, kind:'vertical', solid:true},  // barn
+        {foot:circlePoly(14,10,2.1,16), h:6.5, kind:'vertical', solid:false},
+        {foot:circlePoly(22,8,1.7,14), h:5.2, kind:'vertical', solid:false},
+      ],
+      base: drawLand,
+    },
+  };
+
+  // ── grid + accumulation ──────────────────────────────
+  function buildGrid(sc){
+    const w=sc.world, cells=[];
+    const x0=Math.floor(Math.min(...sc.boundary.map(p=>p.x))/sc.cell)*sc.cell;
+    const x1=Math.max(...sc.boundary.map(p=>p.x));
+    const y0=Math.floor(Math.min(...sc.boundary.map(p=>p.y))/sc.cell)*sc.cell;
+    const y1=Math.max(...sc.boundary.map(p=>p.y));
+    const solids = sc.occluders.filter(o=>o.solid);
+    for(let cy=y0+sc.cell/2; cy<y1; cy+=sc.cell){
+      for(let cx=x0+sc.cell/2; cx<x1; cx+=sc.cell){
+        if(!pip(cx,cy,sc.boundary)) continue;
+        if(solids.some(o=>pip(cx,cy,o.foot))) continue;
+        cells.push({x:cx, y:cy, sun:0});
+      }
+    }
+    // integrate sun-hours across the day
+    const diag=Math.hypot(w.maxX-w.minX, w.maxY-w.minY);
+    const STEPS=46, dt=(SUNSET-SUNRISE)/STEPS;
+    let maxSun=0.0001;
+    for(let i=0;i<=STEPS;i++){
+      const s=sun(i/STEPS); if(s.altDeg<=3) continue;
+      const shadows=sc.occluders.map(o=>shadowOf(o,s,diag));
+      for(const c of cells){ if(!shadows.some(sh=>pip(c.x,c.y,sh))) c.sun+=dt; }
+    }
+    for(const c of cells) if(c.sun>maxSun) maxSun=c.sun;
+    return {cells, maxSun, diag};
+  }
+
+  // ── transform world → canvas (north up) ──────────────
+  function makeT(sc, CW, CH){
+    const w=sc.world, ww=w.maxX-w.minX, wh=w.maxY-w.minY, pad=30;
+    const scale=Math.min((CW-2*pad)/ww, (CH-2*pad)/wh);
+    const ox=(CW-ww*scale)/2, oy=(CH-wh*scale)/2;
+    return {
+      scale,
+      X:x=>ox+(x-w.minX)*scale,
+      Y:y=>oy+(w.maxY-y)*scale,
+      S:m=>m*scale,
+      cx:ox+ww*scale/2, cy:oy+wh*scale/2,
+    };
+  }
+  function pathPoly(ctx,T,poly){ ctx.beginPath(); poly.forEach((p,i)=> i? ctx.lineTo(T.X(p.x),T.Y(p.y)) : ctx.moveTo(T.X(p.x),T.Y(p.y))); ctx.closePath(); }
+  function hatch(ctx,T,poly,color,gap){
+    ctx.save(); pathPoly(ctx,T,poly); ctx.clip();
+    const xs=poly.map(p=>T.X(p.x)), ys=poly.map(p=>T.Y(p.y));
+    const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+    ctx.strokeStyle=color; ctx.lineWidth=1;
+    for(let d=x0-(y1-y0); d<x1; d+=gap){ ctx.beginPath(); ctx.moveTo(d,y1); ctx.lineTo(d+(y1-y0),y0); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  // ── base art per scene (all in world coords via T) ───
+  function fillPoly(ctx,T,poly,style){ pathPoly(ctx,T,poly); ctx.fillStyle=style; ctx.fill(); }
+
+  function drawBalcony(ctx,T){
+    // floor tiles
+    fillPoly(ctx,T,SCENES.balcony.boundary,'#37322b');
+    ctx.strokeStyle='rgba(0,0,0,0.28)'; ctx.lineWidth=1;
+    for(let x=0;x<=4.001;x+=0.5){ ctx.beginPath(); ctx.moveTo(T.X(x),T.Y(0)); ctx.lineTo(T.X(x),T.Y(2.5)); ctx.stroke(); }
+    for(let y=0;y<=2.5001;y+=0.5){ ctx.beginPath(); ctx.moveTo(T.X(0),T.Y(y)); ctx.lineTo(T.X(4),T.Y(y)); ctx.stroke(); }
+    // building wall (back / south) with door gap + glass
+    const wall=rect(-0.16,-0.16,4.16,0);
+    fillPoly(ctx,T,wall,'#2c2820'); hatch(ctx,T,wall,'rgba(147,167,126,0.28)',7);
+    fillPoly(ctx,T,rect(1.4,-0.12,2.6,0),'#23415a');          // glass door
+    ctx.strokeStyle=COL.shade; ctx.lineWidth=1.4; pathPoly(ctx,T,rect(1.4,-0.12,2.6,0)); ctx.stroke();
+    // side walls
+    [rect(-0.16,0,0,2.5),rect(4,0,4.16,2.5)].forEach(w=>{ fillPoly(ctx,T,w,'#2c2820'); hatch(ctx,T,w,'rgba(147,167,126,0.22)',7); });
+    // soffit hint (dashed outline of overhead)
+    ctx.save(); ctx.setLineDash([6,5]); ctx.strokeStyle='rgba(110,134,184,0.5)'; ctx.lineWidth=1.2;
+    pathPoly(ctx,T,rect(0,0,4,1.45)); ctx.stroke(); ctx.restore();
+    // open railing (north)
+    ctx.strokeStyle=COL.dim; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(T.X(0),T.Y(2.5)); ctx.lineTo(T.X(4),T.Y(2.5)); ctx.stroke();
+    ctx.lineWidth=1; for(let x=0.2;x<4;x+=0.28){ ctx.beginPath(); ctx.moveTo(T.X(x),T.Y(2.5)); ctx.lineTo(T.X(x),T.Y(2.64)); ctx.stroke(); }
+    // labels
+    label(ctx,T.X(2),T.Y(-0.1),'BUILDING WALL',COL.sage);
+    label(ctx,T.X(2),T.Y(2.68),'OPEN · RAIL (N)',COL.dim);
+    label(ctx,T.X(3.3),T.Y(1.45)+3,'soffit edge',COL.shade,9);
+  }
+
+  function drawGarden(ctx,T){
+    const rng=mulberry32(7);
+    fillPoly(ctx,T,SCENES.garden.boundary,COL.lawn);
+    // lawn mottle
+    for(let i=0;i<260;i++){ const x=rng()*10, y=rng()*8; ctx.fillStyle= rng()>0.5?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.06)'; ctx.fillRect(T.X(x),T.Y(y),2,2); }
+    // stepping path
+    ctx.strokeStyle='rgba(180,160,120,0.5)'; ctx.lineWidth=T.S(0.5); ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(T.X(2.5),T.Y(0)); ctx.bezierCurveTo(T.X(3.5),T.Y(2.5),T.X(2),T.Y(4.5),T.X(4.5),T.Y(6.2)); ctx.stroke(); ctx.lineCap='butt';
+    // beds (soil)
+    [rect(1,1,3,2.4),rect(4.2,1,5.8,3),rect(0.6,3.4,2,5)].forEach(b=>{ fillPoly(ctx,T,b,COL.soil); ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=1; pathPoly(ctx,T,b); ctx.stroke(); });
+    // house (north)
+    const house=rect(0,6.5,6,8); fillPoly(ctx,T,house,'#322c22'); hatch(ctx,T,house,'rgba(147,167,126,0.22)',8);
+    fillPoly(ctx,T,rect(2.6,6.5,3.6,6.6),'#23415a');           // back door
+    // patio
+    const patio=rect(0,5.3,3,6.5); fillPoly(ctx,T,patio,COL.tile);
+    ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1;
+    for(let x=0;x<=3.001;x+=0.6){ ctx.beginPath(); ctx.moveTo(T.X(x),T.Y(5.3)); ctx.lineTo(T.X(x),T.Y(6.5)); ctx.stroke(); }
+    // shed
+    const shed=rect(8.7,6.7,10,8); fillPoly(ctx,T,shed,'#3a342a'); hatch(ctx,T,shed,'rgba(147,167,126,0.2)',6);
+    // tree
+    ctx.fillStyle='rgba(40,70,42,0.95)'; ctx.beginPath(); ctx.arc(T.X(7.6),T.Y(3),T.S(1.35),0,7); ctx.fill();
+    ctx.fillStyle='rgba(70,110,70,0.7)'; ctx.beginPath(); ctx.arc(T.X(7.6),T.Y(3),T.S(0.9),0,7); ctx.fill();
+    ctx.fillStyle='#3a2c1c'; ctx.beginPath(); ctx.arc(T.X(7.6),T.Y(3),T.S(0.16),0,7); ctx.fill();
+    // west fence
+    ctx.strokeStyle='rgba(160,140,110,0.6)'; ctx.lineWidth=1.5;
+    for(let y=0.2;y<6.2;y+=0.5){ ctx.beginPath(); ctx.moveTo(T.X(0),T.Y(y)); ctx.lineTo(T.X(-0.18),T.Y(y)); ctx.stroke(); }
+    label(ctx,T.X(3),T.Y(7.25),'HOUSE',COL.sage);
+    label(ctx,T.X(7.6),T.Y(3)+3,'TREE',COL.sage,9);
+    label(ctx,T.X(9.35),T.Y(7.35),'SHED',COL.sage,9);
+  }
+
+  function drawLand(ctx,T){
+    const rng=mulberry32(21);
+    // full field background
+    fillPoly(ctx,T,rect(-1,-1,41,31),'#3f5235');
+    // crop stripes
+    for(let y=-1;y<31;y+=2.2){ ctx.fillStyle = (Math.floor(y/2.2)%2)? 'rgba(120,150,80,0.10)':'rgba(0,0,0,0.05)'; ctx.fillRect(T.X(-1),T.Y(y+2.2),T.S(42),T.S(2.2)); }
+    // field mottle
+    for(let i=0;i<420;i++){ const x=rng()*40, y=rng()*30; ctx.fillStyle= rng()>0.5?'rgba(255,255,255,0.025)':'rgba(0,0,0,0.05)'; ctx.fillRect(T.X(x),T.Y(y),2,2); }
+    // pond
+    ctx.fillStyle=COL.water; ctx.beginPath(); ctx.ellipse(T.X(9),T.Y(22),T.S(3),T.S(2),0.3,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.beginPath(); ctx.ellipse(T.X(8.4),T.Y(22.6),T.S(1.4),T.S(0.7),0.3,0,7); ctx.fill();
+    // dirt track
+    ctx.strokeStyle='rgba(150,120,80,0.55)'; ctx.lineWidth=T.S(1.6); ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(T.X(0),T.Y(6)); ctx.bezierCurveTo(T.X(14),T.Y(9),T.X(22),T.Y(16),T.X(40),T.Y(18)); ctx.stroke(); ctx.lineCap='butt';
+    // treeline (north)
+    const tl=rect(5,27,35,30.5); fillPoly(ctx,T,tl,'#243d22');
+    for(let x=6;x<35;x+=2){ ctx.fillStyle='rgba(45,80,45,0.9)'; ctx.beginPath(); ctx.arc(T.X(x),T.Y(28.6),T.S(1.3),0,7); ctx.fill(); }
+    // tree clumps
+    [[14,10,2.1],[22,8,1.7]].forEach(([x,y,r])=>{ ctx.fillStyle='rgba(40,70,42,0.95)'; ctx.beginPath(); ctx.arc(T.X(x),T.Y(y),T.S(r),0,7); ctx.fill(); ctx.fillStyle='rgba(70,110,70,0.55)'; ctx.beginPath(); ctx.arc(T.X(x),T.Y(y),T.S(r*0.6),0,7); ctx.fill(); });
+    // barn
+    const barn=rect(25.5,19.5,31,24); fillPoly(ctx,T,barn,'#5a3f2e'); hatch(ctx,T,barn,'rgba(0,0,0,0.3)',6);
+    ctx.fillStyle='#6b4a36'; ctx.fillRect(T.X(25.5),T.Y(24),T.S(5.5),T.S(0.6));
+    // neighbour parcel hints
+    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+    ctx.beginPath(); ctx.moveTo(T.X(-1),T.Y(2)); ctx.lineTo(T.X(41),T.Y(1.6)); ctx.stroke(); ctx.setLineDash([]);
+    label(ctx,T.X(20),T.Y(29.2),'TREELINE',COL.sage);
+    label(ctx,T.X(28.2),T.Y(21.7),'BARN','#d9c2a8',9);
+    label(ctx,T.X(9),T.Y(22),'POND','#cfe6f0',9);
+  }
+
+  function label(ctx,x,y,txt,color,size){ ctx.font='600 '+(size||11)+'px ui-monospace, Menlo, monospace'; ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,x,y); ctx.textAlign='start'; }
+
+  // ── state ────────────────────────────────────────────
+  const canvas=document.getElementById('cv'), ctx=canvas.getContext('2d');
+  const stage=document.getElementById('stage');
+  const els={
+    time:document.getElementById('ro-time'), alt:document.getElementById('ro-alt'),
+    az:document.getElementById('ro-az'), stat:document.getElementById('ro-stat'),
+    statk:document.getElementById('ro-statk'), caption:document.getElementById('caption'),
+    timeval:document.getElementById('timeval'), opval:document.getElementById('opval'),
+    play:document.getElementById('play'), timeSld:document.getElementById('time'),
+    opSld:document.getElementById('opacity'), modehint:document.getElementById('modehint'),
+    legCell:document.getElementById('leg-cell'),
+  };
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const S={ scene:'balcony', mode:'live', playing:!reduce, t:0.34, opacity:0.74 };
+  let sc, grid, T, CW, CH;
+
+  function selectScene(id){
+    S.scene=id; sc=SCENES[id]; grid=buildGrid(sc);
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.scene===id));
+    els.caption.innerHTML='<b>'+id.toUpperCase()+'</b> — '+sc.label;
+    els.legCell.textContent=sc.cell+' m';
+    fit(); render();
+  }
+  function fit(){
+    const w=stage.getBoundingClientRect().width;
+    CW=w; CH=Math.round(w*0.62);
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    canvas.style.height=CH+'px'; canvas.width=Math.round(CW*dpr); canvas.height=Math.round(CH*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    T=makeT(sc,CW,CH);
+  }
+
+  // ── render ───────────────────────────────────────────
+  function render(){
+    if(!sc) return;
+    ctx.clearRect(0,0,CW,CH); ctx.fillStyle=COL.ground; ctx.fillRect(0,0,CW,CH);
+    sc.base(ctx,T);
+
+    const s=sun(S.t);
+    let litCount=0;
+
+    if(S.mode==='live'){
+      // moving cast shadows over the base
+      if(s.altDeg>2){
+        const shadows=sc.occluders.map(o=>shadowOf(o,s,grid.diag));
+        ctx.save(); ctx.fillStyle='rgba(20,22,30,0.30)';
+        shadows.forEach(sh=>{ pathPoly(ctx,T,sh); ctx.fill(); });
+        ctx.restore();
+        // grid cells, lit vs shaded
+        const altFrac=Math.max(0,Math.min(1,s.altDeg/74));
+        ctx.globalAlpha=S.opacity;
+        for(const c of grid.cells){
+          const lit = !shadows.some(sh=>pip(c.x,c.y,sh));
+          if(lit) litCount++;
+          ctx.fillStyle = lit ? mix('#b08a3e', '#F2B84B', altFrac) : '#5E6E9E';
+          cell(c);
+        }
+        ctx.globalAlpha=1;
+      } else {
+        ctx.globalAlpha=S.opacity; ctx.fillStyle='#46527a';
+        for(const c of grid.cells) cell(c);
+        ctx.globalAlpha=1;
+      }
+      els.statk.textContent='cells lit';
+      els.stat.textContent=litCount+' / '+grid.cells.length;
+    } else {
+      // accumulated sun-hours map
+      ctx.globalAlpha=S.opacity;
+      for(const c of grid.cells){ ctx.fillStyle=ramp(c.sun/grid.maxSun); cell(c); }
+      ctx.globalAlpha=1;
+      // dotted sun path orbit
+      drawOrbit();
+      const hrs=grid.cells.map(c=>c.sun);
+      els.statk.textContent='sun-hours';
+      els.stat.textContent=Math.min(...hrs).toFixed(1)+'–'+Math.max(...hrs).toFixed(1)+' h';
+    }
+
+    // boundary survey line
+    ctx.save(); ctx.setLineDash([7,5]); ctx.strokeStyle=COL.accent; ctx.lineWidth=1.6;
+    pathPoly(ctx,T,sc.boundary); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=COL.accent; sc.boundary.forEach(p=>{ ctx.beginPath(); ctx.arc(T.X(p.x),T.Y(p.y),2.6,0,7); ctx.fill(); });
+    ctx.restore();
+
+    if(S.mode==='live' && s.altDeg>1) drawSun(s);
+    drawCompass(s);
+
+    // readouts
+    els.time.textContent=clock(S.t); els.timeval.textContent=clock(S.t);
+    els.alt.textContent=Math.max(0,Math.round(s.altDeg))+'°';
+    els.az.textContent=Math.round(s.azDeg)+'° '+compass(s.azDeg);
+  }
+  function cell(c){ const h=sc.cell/2; ctx.fillRect(T.X(c.x-h), T.Y(c.y+h), T.S(sc.cell)+0.6, T.S(sc.cell)+0.6); }
+
+  function drawSun(s){
+    const r=Math.min(CW,CH)*0.46;
+    const px=T.cx+s.dir.x*r, py=T.cy-s.dir.y*r;          // screen: north up
+    const g=ctx.createRadialGradient(px,py,0,px,py,38);
+    g.addColorStop(0,'rgba(233,162,58,0.9)'); g.addColorStop(1,'rgba(233,162,58,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,38,0,7); ctx.fill();
+    ctx.strokeStyle='rgba(233,162,58,0.5)'; ctx.lineWidth=1.5;
+    for(let i=0;i<8;i++){ const a=i/8*2*Math.PI; ctx.beginPath(); ctx.moveTo(px+Math.cos(a)*12,py+Math.sin(a)*12); ctx.lineTo(px+Math.cos(a)*18,py+Math.sin(a)*18); ctx.stroke(); }
+    ctx.fillStyle=COL.accent; ctx.beginPath(); ctx.arc(px,py,8,0,7); ctx.fill();
+  }
+  function drawOrbit(){
+    const r=Math.min(CW,CH)*0.46;
+    ctx.save(); ctx.setLineDash([2,6]); ctx.strokeStyle='rgba(233,162,58,0.35)'; ctx.lineWidth=1.2;
+    ctx.beginPath();
+    for(let i=0;i<=60;i++){ const s=sun(i/60); const px=T.cx+s.dir.x*r, py=T.cy-s.dir.y*r; i?ctx.lineTo(px,py):ctx.moveTo(px,py); }
+    ctx.stroke(); ctx.restore();
+  }
+  function drawCompass(s){
+    const cx=CW-34, cy=34, r=18;
+    ctx.fillStyle='rgba(15,13,9,0.7)'; ctx.beginPath(); ctx.arc(cx,cy,r+8,0,7); ctx.fill();
+    ctx.strokeStyle='rgba(168,159,140,0.4)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.stroke();
+    ctx.font='600 9px ui-monospace, Menlo, monospace'; ctx.fillStyle=COL.dim; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('N',cx,cy-r-0.5); ctx.fillText('S',cx,cy+r+0.5); ctx.fillText('E',cx+r,cy); ctx.fillText('W',cx-r,cy);
+    if(s.altDeg>1){ const a=(s.azDeg-90)*Math.PI/180; const sx=cx+Math.cos(a)*r, sy=cy+Math.sin(a)*r;
+      ctx.fillStyle=COL.accent; ctx.beginPath(); ctx.arc(sx,sy,3.4,0,7); ctx.fill(); }
+    ctx.textAlign='start';
+  }
+
+  // ── loop ─────────────────────────────────────────────
+  let last=null;
+  function frame(ts){
+    if(last===null) last=ts;
+    const dt=(ts-last)/1000; last=ts;
+    if(S.playing && S.mode==='live'){
+      S.t += dt/12;                                       // ~12 s per day
+      if(S.t>1) S.t-=1;
+      els.timeSld.value=Math.round(S.t*1000);
+      render();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ── controls ─────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(b=> b.addEventListener('click', ()=>selectScene(b.dataset.scene)));
+  els.play.addEventListener('click', ()=>{ S.playing=!S.playing; els.play.textContent=S.playing?'❚❚':'►'; });
+  els.timeSld.addEventListener('input', e=>{ S.t=e.target.value/1000; if(S.mode==='live'){ S.playing=false; els.play.textContent='►'; } render(); });
+  els.opSld.addEventListener('input', e=>{ S.opacity=e.target.value/100; els.opval.textContent=e.target.value+'%'; render(); });
+  document.querySelectorAll('#mode button').forEach(b=> b.addEventListener('click', ()=>{
+    S.mode=b.dataset.mode;
+    document.querySelectorAll('#mode button').forEach(x=>x.classList.toggle('on', x===b));
+    const live = S.mode==='live';
+    els.timeSld.disabled=!live; els.play.disabled=!live; els.play.style.opacity=live?1:0.4;
+    els.modehint.textContent= live ? 'live shadow' : 'integrated · whole day';
+    render();
+  }));
+
+  let rt; window.addEventListener('resize', ()=>{ clearTimeout(rt); rt=setTimeout(()=>{ fit(); render(); },120); });
+
+  // boot
+  selectScene('balcony');
+  els.play.textContent=S.playing?'❚❚':'►';
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
