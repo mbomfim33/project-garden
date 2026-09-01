@@ -35,14 +35,10 @@ export function SpaceGallery() {
 
   return (
     <div className="gallery">
-      <p className="eyebrow">Draw it once, and the light follows</p>
-      <h1>
-        Where does the sun <em>actually</em> land?
-      </h1>
+      <h1>Spaces</h1>
       <p className="lede">
-        Trace your balcony, garden or plot. Mark the walls, the tree, the slab overhead. The
-        studio works out where the light falls hour by hour, on the longest day and the shortest,
-        and colours every square metre by how much it gets. <b>Everything stays in your browser.</b>
+        Draw a space, then mark the walls, trees and roofs around it. The app works out how many
+        hours of sun each part of it gets, on the longest day of the year and on the shortest.
       </p>
 
       {error ? (
@@ -62,7 +58,7 @@ export function SpaceGallery() {
           + Plot of land
         </button>
         <button className="ghost" onClick={() => fileRef.current?.click()}>
-          Import JSON
+          Open a file
         </button>
         <input
           ref={fileRef}
@@ -80,7 +76,7 @@ export function SpaceGallery() {
       </div>
 
       {spaces.length === 0 ? (
-        <p className="empty">Nothing saved yet. Start with a balcony — it takes about a minute.</p>
+        <p className="empty">No spaces yet. Add one above.</p>
       ) : (
         <ul className="cards">
           {spaces.map((space) => (
@@ -90,7 +86,7 @@ export function SpaceGallery() {
                 <h2>{space.name}</h2>
                 <div className="meta">
                   <span>{TYPE_LABEL[space.type]}</span>
-                  <span>{space.boundary.length >= 3 ? `${area(space.boundary).toFixed(1)} m²` : 'not drawn yet'}</span>
+                  <span>{space.boundary.length >= 3 ? `${area(space.boundary).toFixed(1)} m²` : 'not drawn'}</span>
                   <span>
                     {Math.abs(space.geo.lat).toFixed(1)}° {space.geo.lat >= 0 ? 'N' : 'S'}
                   </span>
@@ -106,12 +102,12 @@ export function SpaceGallery() {
                     Copy
                   </button>
                   <button className="ghost" onClick={() => downloadSpace(space.id, space.name)}>
-                    Export
+                    Save to file
                   </button>
                   <button
                     className="ghost danger"
                     onClick={() => {
-                      if (confirm(`Delete “${space.name}”? This can't be undone.`)) remove(space.id);
+                      if (confirm(`Delete "${space.name}"? You cannot undo this.`)) remove(space.id);
                     }}
                   >
                     Delete

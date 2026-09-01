@@ -106,7 +106,7 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
           >
             {playing ? '❚❚' : '▶'}
           </button>
-          <div className="seg" role="group" aria-label="What the squares show">
+          <div className="seg" role="group" aria-label="What the colours show">
             {MODES.map((m) => (
               <button key={m.key} aria-pressed={mode === m.key} onClick={() => setMode(m.key)}>
                 {m.label}
@@ -131,7 +131,7 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
 
         <div className="ctl">
           <span className="mono dim">day</span>
-          <div className="seg" role="group" aria-label="Which day to animate">
+          <div className="seg" role="group" aria-label="Which day of the year">
             <button aria-pressed={seasonKey === 'summer'} onClick={() => setSeasonKey('summer')}>
               Midsummer
             </button>
@@ -149,7 +149,7 @@ export function SpaceStudio({ space, grid }: { space: Space; grid: Grid }) {
             max={100}
             value={Math.round(opacity * 100)}
             onChange={(e) => setOpacity(Number(e.target.value) / 100)}
-            aria-label="Overlay strength"
+            aria-label="Colour strength"
           />
           <span className="mono">{Math.round(opacity * 100)}%</span>
         </div>

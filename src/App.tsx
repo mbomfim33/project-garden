@@ -10,12 +10,12 @@ function Topbar() {
   return (
     <header className="topbar">
       <Link className="brand" to="/">
-        Project <b>Garden</b> · sun map studio
+        Project <b>Garden</b>
       </Link>
       <span className="spacer" />
       <nav>
         <Link to="/">
-          <button className="ghost">My spaces</button>
+          <button className="ghost">Spaces</button>
         </Link>
       </nav>
     </header>
@@ -41,7 +41,7 @@ function StudioScreen() {
   if (!grid) {
     return (
       <p className="pending" aria-busy={pending}>
-        Working out where the light falls…
+        Calculating…
       </p>
     );
   }
@@ -59,12 +59,14 @@ export function App() {
   return (
     <div className="shell">
       <Topbar />
-      <Routes>
-        <Route path="/" element={<SpaceGallery />} />
-        <Route path="/editor/:id" element={<EditorScreen />} />
-        <Route path="/studio/:id" element={<StudioScreen />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <main className="main">
+        <Routes>
+          <Route path="/" element={<SpaceGallery />} />
+          <Route path="/editor/:id" element={<EditorScreen />} />
+          <Route path="/studio/:id" element={<StudioScreen />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
     </div>
   );
 }
