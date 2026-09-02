@@ -47,7 +47,7 @@ function contentSecurityPolicy(): Plugin {
 }
 
 export default defineConfig({
-  base: './',
+  base: '/project-garden',
   plugins: [react(), contentSecurityPolicy()],
   build: {
     // Vite's preload helper would otherwise be inlined, and an inline script is
