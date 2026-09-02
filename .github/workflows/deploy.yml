@@ -1,3 +1,4 @@
+# This workflow is managed by gh actions-lock.
 # Simple workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
 
@@ -33,9 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: lts/*
           cache: "npm"
@@ -44,12 +45,12 @@ jobs:
       - name: Build
         run: npm run build
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v5.0.0
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v3.0.1
         with:
           # Upload dist folder
           path: "./dist"
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4.0.5
